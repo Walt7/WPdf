@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.0.0
+- **Aggiornamenti**: avviso quando esce una nuova versione (Novità, Aggiorna e riavvia, Più tardi, Salta questa versione). WPdf.exe si aggiorna da solo verificando dimensione e SHA-256 e riapre il file; con pip mostra il comando. Disattivabile con `--no-update-check`.
+- Link **Segnala un problema** nell'app e modelli per le issue su GitHub.
 - Eseguibile Windows in un solo file: `build.bat` crea `dist\WPdf.exe` con PyInstaller.
 - Nuova interfaccia: barra su due righe (comandi; livelli, ricerca e zoom), controlli raggruppati, barra di stato con file, modalità di salvataggio e pagine, schermata iniziale con le spiegazioni dei livelli, tema scuro rifinito.
 - **Cerca** (Ctrl+F): trova il testo in tutti i livelli, Invio/Maiusc+Invio o frecce per scorrere i risultati.

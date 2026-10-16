@@ -1,12 +1,14 @@
 """Test di base: python -m unittest discover -s tests"""
+import hashlib
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 import pymupdf as fitz
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from wpdf import app  # noqa: E402
+from wpdf import app, update  # noqa: E402
 
 
 def sample_pdf():
@@ -121,6 +123,61 @@ class Robustness(unittest.TestCase):
     def test_page_png_zoom_is_clamped(self):
         w = fitz.open(stream=app.page_png(0, 1000), filetype="png")[0].rect.width
         self.assertLessEqual(w, app.State.doc[0].rect.width * 8 + 1)
+
+
+class Updates(unittest.TestCase):
+    def test_version_compare(self):
+        self.assertTrue(update.is_newer("v1.0.1", "1.0.0"))
+        self.assertTrue(update.is_newer("1.10.0", "1.9.9"))
+        self.assertFalse(update.is_newer("v1.0.0", "1.0.0"))
+        self.assertFalse(update.is_newer("0.9.0", "1.0.0"))
+
+    def test_summarize_release(self):
+        rel = {"tag_name": "v9.0.0", "html_url": "https://example/rel", "body": "note",
+               "assets": [{"name": "WPdf.exe", "size": 3, "digest": "sha256:ABC",
+                           "browser_download_url": "https://example/WPdf.exe"}]}
+        r = update.summarize(rel, "1.0.0")
+        self.assertTrue(r["newer"])
+        self.assertEqual(r["latest"], "9.0.0")
+        self.assertEqual(r["asset"]["sha256"], "ABC")
+        self.assertFalse(r["canInstall"])          # i test non girano come WPdf.exe
+        self.assertIsNone(update.summarize({"tag_name": "v9", "assets": []})["asset"])
+
+    def _asset(self, d, data, **over):
+        src = Path(d) / "nuovo.bin"
+        src.write_bytes(data)
+        return {"url": src.as_uri(), "size": len(data), "sha256": hashlib.sha256(data).hexdigest(), **over}
+
+    def test_download_is_verified(self):
+        with tempfile.TemporaryDirectory() as d:
+            got = update.download(self._asset(d, b"exe nuovo"), d)
+            self.assertEqual(got.read_bytes(), b"exe nuovo")
+            for bad in ({"sha256": "0" * 64}, {"size": 999}):
+                with self.assertRaises(ValueError):
+                    update.download(self._asset(d, b"exe nuovo", **bad), d)
+            self.assertEqual(len(list(Path(d).glob("*.download"))), 1)   # gli scaricamenti falliti non restano
+
+    def test_swap_keeps_old_copy(self):
+        with tempfile.TemporaryDirectory() as d:
+            exe, new = Path(d) / "WPdf.exe", Path(d) / "x.download"
+            exe.write_bytes(b"vecchio")
+            new.write_bytes(b"nuovo")
+            old = update.swap(exe, new)
+            self.assertEqual((exe.read_bytes(), old.read_bytes()), (b"nuovo", b"vecchio"))
+            self.assertEqual(old.name, "WPdf.old.exe")
+
+
+class Dirty(unittest.TestCase):
+    def test_unsaved_changes_are_tracked(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "t.pdf"
+            f.write_bytes(sample_pdf())
+            app.State.load(f.read_bytes(), f.name, f)
+            self.assertEqual(app.State.idx, app.State.saved_idx)
+            app.apply_edit({"page": 0, "origin": [72, 300], "text": "x", "size": 8, "color": "#000000"})
+            self.assertNotEqual(app.State.idx, app.State.saved_idx)
+            app.save_in_place()
+            self.assertEqual(app.State.idx, app.State.saved_idx)
 
 
 if __name__ == "__main__":

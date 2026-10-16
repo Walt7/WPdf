@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilità di sicurezza
+    url: https://github.com/Walt7/WPdf/security/advisories/new
+    about: Segnalala in privato, non in una issue pubblica.
+  - name: Scarica l'ultima versione
+    url: https://github.com/Walt7/WPdf/releases/latest
+    about: Prima di segnalare un problema, controlla che succeda anche con l'ultima versione.

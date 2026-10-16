@@ -1,0 +1,29 @@
+name: Proponi una funzione
+description: Un'idea per migliorare WPdf.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Cosa vuoi fare
+      description: Il compito che oggi è difficile o impossibile con WPdf.
+      placeholder: "Devo compilare spesso moduli con ..."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Come lo immagini
+      description: Come dovrebbe funzionare, anche a grandi linee.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Come fai adesso
+      description: Altri programmi o passaggi che usi oggi.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Prima di inviare
+      options:
+        - label: Ho cercato tra le issue esistenti e non c'è già questa proposta.
+          required: true

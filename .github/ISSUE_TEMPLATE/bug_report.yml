@@ -1,0 +1,70 @@
+name: Segnala un problema
+description: Qualcosa non funziona come dovrebbe.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Grazie della segnalazione. **Non allegare PDF reali**: possono contenere dati personali.
+        Se serve un esempio, crea un PDF di prova con testi inventati.
+  - type: input
+    id: version
+    attributes:
+      label: Versione di WPdf
+      description: È in basso a destra nell'app (es. 1.0.0).
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Come usi WPdf
+      options:
+        - WPdf.exe (Windows)
+        - pip / sorgente su Windows
+        - pip / sorgente su Linux
+        - pip / sorgente su macOS
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: "Chrome 141, Firefox 144, Edge..."
+  - type: textarea
+    id: what
+    attributes:
+      label: Cosa è successo
+      description: Descrivi il problema e cosa ti aspettavi invece.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passi per riprodurlo
+      placeholder: |
+        1. Apro un PDF con ...
+        2. Clicco su ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: pdf
+    attributes:
+      label: Il PDF
+      description: Che tipo di PDF è (modulo, scansione, creato da quale programma) e se le annotazioni vengono da Foxit o altri. Niente dati personali.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Messaggi di errore
+      description: Testo degli errori mostrati dall'app o nella finestra nera di WPdf.exe.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Prima di inviare
+      options:
+        - label: Ho cercato tra le issue esistenti e non c'è già questa segnalazione.
+          required: true
+        - label: Non ho allegato PDF o schermate con dati personali.
+          required: true

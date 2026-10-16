@@ -5,14 +5,14 @@ Livelli:
   foxit = annotazioni FreeText non create da questa app (es. Macchina da scrivere di Foxit)
   app   = annotazioni FreeText create da questa app (title "WPdfEditor")
 """
-import argparse, json, os, re, sys, threading, webbrowser
+import argparse, json, os, re, sys, threading, time, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote
 
 import pymupdf as fitz
 
-from . import __version__
+from . import __version__, update
 
 HERE = Path(__file__).parent
 PORT = int(os.environ.get("EDITOR_PORT", 8765))
@@ -29,6 +29,7 @@ class State:
     path = None    # percorso su disco, se noto (per salvataggio diretto)
     history = []   # bytes per ogni stato
     idx = -1
+    saved_idx = 0   # stato corrispondente al file su disco: idx diverso = modifiche non salvate
     _plain = None  # (idx, doc senza annotazioni) cache per leggere il livello orig
 
     @classmethod
@@ -39,6 +40,7 @@ class State:
         cls.name = name
         cls.history = [data]
         cls.idx = 0
+        cls.saved_idx = 0
         cls._plain = None
 
     MAX_HISTORY = 40   # stati conservati per annulla/ripristina (ognuno e' una copia del PDF)
@@ -51,6 +53,7 @@ class State:
         if len(cls.history) > cls.MAX_HISTORY:
             del cls.history[0]
             cls.idx -= 1
+            cls.saved_idx -= 1
         cls._plain = None
 
     @classmethod
@@ -356,6 +359,7 @@ def save_in_place():
     tmp = p.with_name(p.name + ".tmp")
     tmp.write_bytes(State.history[State.idx])
     tmp.replace(p)
+    State.saved_idx = State.idx
     return str(p)
 
 
@@ -391,13 +395,39 @@ class H(BaseHTTPRequestHandler):
                 "pages": len(d) if d else 0,
                 "sizes": [[p.rect.width, p.rect.height] for p in d] if d else [],
                 "canUndo": State.idx > 0, "canRedo": State.idx < len(State.history) - 1,
-                "rev": State.idx}
+                "rev": State.idx, "dirty": State.idx != State.saved_idx, "updates": not NO_UPDATES}
+
+    def install_update(self):
+        exe = update.frozen_exe()
+        if not exe:
+            return self.send(400, {"error": "aggiornamento automatico disponibile solo per WPdf.exe"})
+        if State.idx != State.saved_idx:
+            return self.send(409, {"error": "unsaved"})
+        try:
+            rel = update.check()
+            if not rel["newer"] or not rel["asset"]:
+                return self.send(400, {"error": "nessuna versione piu' recente da installare"})
+            new = update.download(rel["asset"], exe.parent)
+            update.swap(exe, new)
+        except PermissionError:
+            return self.send(400, {"error": f"non posso scrivere in {exe.parent}: scarica la nuova versione dalla pagina della Release"})
+        except Exception as e:
+            return self.send(400, {"error": str(e)})
+        self.send(200, {"restarting": True, "version": rel["latest"]})
+        threading.Thread(target=restart, args=(exe,), daemon=True).start()
 
     def do_GET(self):
         if not self.allowed():
             return self.send(403, {"error": "forbidden"})
         u = urlparse(self.path)
         q = parse_qs(u.query)
+        if u.path == "/update/check":   # fuori dal LOCK: richiesta di rete
+            if NO_UPDATES:
+                return self.send(200, {"disabled": True})
+            try:
+                return self.send(200, update.check(force="force" in q))
+            except Exception as e:
+                return self.send(502, {"error": f"controllo aggiornamenti non riuscito: {e}"})
         with LOCK:
             if u.path == "/":
                 return self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -432,6 +462,8 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         n = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(n)
+        if u.path == "/update/install":
+            return self.install_update()
         if u.path == "/pick":
             try:
                 p = pick_file()
@@ -469,14 +501,35 @@ class H(BaseHTTPRequestHandler):
                 return self.send(400, {"error": str(e)})
 
 
+NO_UPDATES = bool(os.environ.get("WPDF_NO_UPDATE_CHECK"))
+SRV = None
+RESTART_ARGS = []
+RESTART_EXE = None   # impostato da restart(): main() rilancia questo exe dopo aver chiuso il server
+
+
+def restart(exe):
+    """Chiede la chiusura del server: main() poi libera la porta e avvia il nuovo exe sulla stessa
+    porta. La pagina aperta nel browser aspetta che il server risponda e si ricarica da sola."""
+    global RESTART_EXE
+    time.sleep(0.5)   # lascia arrivare la risposta al browser
+    RESTART_EXE = exe
+    SRV.shutdown()
+
+
 def main():
-    global PORT
+    global PORT, SRV, NO_UPDATES
     ap = argparse.ArgumentParser(description="WPdf - editor PDF locale nel browser")
     ap.add_argument("file", nargs="?", help="PDF da aprire subito")
     ap.add_argument("--port", type=int, default=PORT, help="porta di partenza (default %(default)s)")
     ap.add_argument("--no-browser", action="store_true", help="non aprire il browser")
+    ap.add_argument("--no-update-check", action="store_true", help="non controllare gli aggiornamenti su GitHub")
     ap.add_argument("--version", action="version", version=f"WPdf {__version__}")
+    ap.add_argument("--after-update", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args()
+    NO_UPDATES = NO_UPDATES or args.no_update_check
+    if NO_UPDATES:
+        RESTART_ARGS.append("--no-update-check")
+    update.cleanup_old()
     if args.file:
         p = Path(args.file)
         State.load(p.read_bytes(), p.name, p.resolve())
@@ -490,14 +543,22 @@ def main():
             continue
     if srv is None:
         sys.exit("Nessuna porta libera trovata.")
+    SRV = srv
     url = f"http://127.0.0.1:{PORT}/"
     print(f"WPdf {__version__} su {url} (Ctrl+C per uscire)")
-    if not args.no_browser:
+    # dopo un aggiornamento la pagina gia' aperta si ricarica da sola, a meno che la porta sia cambiata
+    if not args.no_browser and not (args.after_update and PORT == args.port):
         webbrowser.open(url)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+    srv.server_close()
+    if RESTART_EXE:
+        args = ["--port", str(PORT), "--after-update", *RESTART_ARGS]
+        if State.path:
+            args.append(State.path)
+        update.relaunch(RESTART_EXE, args)
 
 
 if __name__ == "__main__":

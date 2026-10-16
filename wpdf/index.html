@@ -145,6 +145,20 @@ footer .keys{white-space:nowrap}
 #drop{display:none;position:fixed;inset:0;z-index:9;align-items:center;justify-content:center;background:color-mix(in srgb,var(--desk) 72%,transparent);backdrop-filter:blur(2px)}
 #drop *{pointer-events:none}
 #drop .dz{padding:30px 44px;border:2px dashed var(--acc);border-radius:16px;background:var(--bar);color:var(--acc);font-size:20px;font-weight:600;box-shadow:var(--shadow)}
+/* aggiornamenti */
+#upd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:var(--acc-soft);border-bottom:1px solid var(--line);font-size:13px}
+#upd[hidden]{display:none}
+#upd .msg{flex:1 1 260px;min-width:0}
+#upd .msg b{color:var(--ink)}
+#upd a{color:var(--acc);font-weight:600}
+#upd code{font:12px var(--num);padding:2px 6px;border-radius:4px;background:var(--bar);border:1px solid var(--line);user-select:all;overflow-wrap:anywhere}
+#upd .acts{display:flex;flex-wrap:wrap;gap:6px}
+#upd .quiet{background:transparent;border-color:transparent;color:var(--mute)}
+#upd .quiet:hover:not(:disabled){color:var(--ink);border-color:var(--line)}
+a.flink{color:inherit;white-space:nowrap;text-decoration:underline dotted;text-underline-offset:3px}
+a.flink:hover{color:var(--acc)}
+button.link{background:transparent;border:0;padding:0 2px;color:inherit;font:inherit;text-decoration:underline dotted;text-underline-offset:3px}
+button.link:hover:not(:disabled){color:var(--acc)}
 #toast{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bar);padding:8px 16px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:10}
 #toast.show{opacity:.95}
 @media (max-width:760px){footer .keys,.brand b,.lbl{display:none}.lay{flex-wrap:wrap;row-gap:2px}.find input,.find input:focus{width:8em}}
@@ -189,6 +203,7 @@ footer .keys{white-space:nowrap}
     <button id="bSaveAs" disabled title="Scarica una copia">Salva copia…</button>
   </div>
 </header>
+<div id="upd" role="status" hidden></div>
 <main>
   <div id="pages"><div id="empty">
     <img src="/assets/favicon.svg" alt="" width="64" height="64">
@@ -209,12 +224,14 @@ footer .keys{white-space:nowrap}
 <footer>
   <span id="name">Nessun file aperto</span><span id="mode" class="chip"></span><span id="pinfo"></span>
   <span class="spacer"></span>
-  <span class="keys"><kbd>Ctrl</kbd>+<kbd>F</kbd> cerca · <kbd>Ctrl</kbd>+<kbd>S</kbd> salva</span><span id="ver"></span>
+  <a id="issue" class="flink" href="https://github.com/Walt7/WPdf/issues/new/choose" target="_blank" rel="noopener" title="Apre GitHub: non allegare PDF con dati personali">Segnala un problema</a>
+  <span class="keys"><kbd>Ctrl</kbd>+<kbd>F</kbd> cerca · <kbd>Ctrl</kbd>+<kbd>S</kbd> salva</span><button id="ver" class="link" title="Controlla se c'è una versione più recente"></button>
 </footer>
 <div id="drop"><div class="dz">Rilascia il PDF per aprirlo</div></div>
 <div id="toast"></div>
 <script>
 const $=s=>document.querySelector(s);
+{const t=new URLSearchParams(location.search).get('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}   // tema forzato (?theme=), usato per gli screenshot
 let info={open:false},zoom=1.5,tool='text',pend=[],selId=null,uid=0;
 const layers={orig:false,foxit:true,app:true};
 const LNAME={orig:'Originale',foxit:'Foxit',app:'App'},LCOL={orig:'#3b82f6',foxit:'#f59e0b',app:'#22c55e'};
@@ -260,7 +277,7 @@ async function openPicker(){
     await opened(r)}
   catch(e){alert('Errore: '+e.message)}
 }
-async function refresh(i){info=i;if(i.version)$('#ver').textContent='v'+i.version;OC=null;navIdx.foxit=navIdx.app=-1;qKey=null;await render();updCounts();if($('#q').value.trim())find(0)}
+async function refresh(i){info=i;if(i.version){$('#ver').textContent='v'+i.version;$('#issue').href='https://github.com/Walt7/WPdf/issues/new?template=bug_report.yml&version='+encodeURIComponent(i.version)}OC=null;navIdx.foxit=navIdx.app=-1;qKey=null;await render();updCounts();if($('#q').value.trim())find(0)}
 
 async function render(){
   const box=$('#pages');
@@ -629,8 +646,52 @@ $('#bPanel').onclick=()=>{
 };
 let panelPref=null;try{panelPref=localStorage.getItem('wpdf.panelClosed')}catch{}
 setPanel(panelPref===null?innerWidth<900:panelPref==='1');   // senza preferenza: chiuso su finestre strette
+/* ---------- aggiornamenti ---------- */
+const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+let upd=null;
+async function checkUpdate(manual){
+  if(!info.updates){if(manual)toast('Controllo aggiornamenti disattivato (--no-update-check)');return}
+  try{
+    const r=await api('/update/check'+(manual?'?force=1':''));
+    if(r.disabled)return;
+    if(!r.newer){if(manual)toast(`Hai l'ultima versione (${r.current})`);return}
+    if(!manual&&store.get('wpdf.skipVersion')===r.latest)return;
+    upd=r;showUpdate();
+  }catch(e){if(manual)alert('Impossibile controllare gli aggiornamenti: '+e.message)}
+}
+function showUpdate(state){
+  const b=$('#upd'),r=upd;b.hidden=false;
+  if(state==='busy'){b.innerHTML=`<span class="msg">Scarico WPdf <b>${esc(r.latest)}</b>… non chiudere questa finestra.</span>`;return}
+  if(state==='restart'){b.innerHTML=`<span class="msg">WPdf <b>${esc(r.latest)}</b> installato: riavvio in corso, la pagina si ricarica da sola.</span>`;return}
+  b.innerHTML=`<span class="msg">È disponibile <b>WPdf ${esc(r.latest)}</b> (hai la ${esc(r.current)}). <a href="${esc(r.url)}" target="_blank" rel="noopener">Novità</a>
+    ${r.canInstall?'':`<br>Per aggiornare: <code>${esc(r.pip)}</code> oppure scarica <b>WPdf.exe</b> dalla pagina della versione.`}</span>
+    <span class="acts">${r.canInstall?'<button class="primary" id="uGo">Aggiorna e riavvia</button>':''}
+    <button class="quiet" id="uLater">Più tardi</button><button class="quiet" id="uSkip">Salta questa versione</button></span>`;
+  if(r.canInstall)$('#uGo').onclick=installUpdate;
+  $('#uLater').onclick=()=>{b.hidden=true};
+  $('#uSkip').onclick=()=>{store.set('wpdf.skipVersion',r.latest);b.hidden=true;toast(`Non ti avviso più per la ${r.latest}`)};
+}
+async function installUpdate(){
+  if(pend.length||info.dirty){
+    if(!info.path){alert('Ci sono modifiche non salvate e il file non ha un percorso: usa "Salva copia" prima di aggiornare.');return}
+    if(!confirm('Ci sono modifiche non salvate. Le salvo sul file e poi aggiorno?'))return;
+    await save();if(pend.length||info.dirty)return;
+  }
+  showUpdate('busy');
+  try{await post('/update/install')}
+  catch(e){showUpdate();alert(e.message==='unsaved'?'Salva le modifiche prima di aggiornare.':'Aggiornamento non riuscito: '+e.message);return}
+  showUpdate('restart');
+  const until=Date.now()+90000;
+  while(Date.now()<until){   // il vecchio server si chiude, il nuovo riparte sulla stessa porta
+    await new Promise(r=>setTimeout(r,1000));
+    try{const i=await api('/info');if(i.version===upd.latest){location.reload();return}}catch{}
+  }
+  $('#upd').innerHTML='<span class="msg">Il nuovo WPdf non risponde ancora: riaprilo dal suo collegamento.</span>';
+}
+$('#ver').onclick=()=>checkUpdate(true);
+
 $('#panel').innerHTML=HELP;
-api('/info').then(refresh);
+api('/info').then(async i=>{await refresh(i);setTimeout(()=>checkUpdate(false),1500)});
 </script>
 </body>
 </html>
