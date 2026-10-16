@@ -28,16 +28,20 @@
   --acc:#8fa6ff;--on-acc:#0d1530;--acc-soft:#8fa6ff29;--ok:#4ade80;--on-ok:#05240e;--bad:#f87171;--warn:#fbbf24;
   --shadow:0 1px 2px #0009,0 12px 32px #000a;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font:14px/1.4 var(--ui);background:var(--desk);color:var(--ink);display:flex;flex-direction:column}
+html,body{height:100%;overflow:hidden}   /* app a schermo intero: scorrono solo documento e pannello */
+body{margin:0;font:14px/1.4 var(--ui);background:var(--desk);color:var(--ink);display:flex;flex-direction:column;min-width:0}
 button,select,input{font:inherit;color:var(--ink)}
 input[type=checkbox]{accent-color:var(--acc)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* barra strumenti */
-header{background:var(--bar);border-bottom:1px solid var(--line)}
-.tbr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:7px 12px}
-.tb2{border-top:1px solid var(--line);padding-block:5px;font-size:13px}
+/* due blocchi sulla stessa riga quando c'e' spazio, altrimenti il secondo va sotto */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:7px 12px;background:var(--bar);border-bottom:1px solid var(--line)}
+.tbr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.tb3{margin-left:auto}
+/* livelli e ricerca: seconda riga sotto i comandi, sulla stessa riga solo su schermi molto larghi */
+.tb2{order:3;flex-basis:100%;font-size:13px;padding-top:6px;border-top:1px solid var(--line)}
+@media (min-width:1880px){.tb2{order:0;flex-basis:auto;padding-top:0;border-top:0}}
 .lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
 .brand{display:flex;align-items:center;gap:4px;font-size:16px;font-weight:700;letter-spacing:.2px;margin-right:2px}
 .spacer{flex:1}
@@ -46,7 +50,7 @@ button:hover:not(:disabled){border-color:var(--acc)}
 button:disabled{opacity:.45;cursor:default}
 button.primary{background:var(--acc);color:var(--on-acc);border-color:var(--acc);font-weight:600}
 button.ok{background:var(--ok);color:var(--on-ok);border-color:var(--ok);font-weight:600}
-.grp{display:inline-flex;align-items:center;gap:2px;padding:2px;background:var(--well);border-radius:8px}
+.grp{display:inline-flex;flex-wrap:wrap;max-width:100%;align-items:center;gap:2px;padding:2px;background:var(--well);border-radius:8px}
 .grp>button{background:transparent;border-color:transparent}
 .grp>button:hover:not(:disabled){background:var(--bar);border-color:transparent}
 .grp>button.on{background:var(--bar);border-color:var(--line);color:var(--acc);font-weight:600;box-shadow:0 1px 2px #151b2e1a}
@@ -67,8 +71,8 @@ button.ico{display:inline-flex;align-items:center;padding:5px 7px}
 #zv{min-width:3.4em;text-align:center;font:12px var(--num);font-variant-numeric:tabular-nums}
 
 /* documento */
-main{flex:1;display:flex;min-height:0}
-#pages{flex:1;overflow:auto;padding:24px 16px;text-align:center}
+main{flex:1;display:flex;min-height:0;min-width:0}
+#pages{flex:1;min-width:0;overflow:auto;padding:24px 16px;text-align:center}
 .page{position:relative;display:inline-block;margin:0 auto 20px;box-shadow:var(--shadow);background:#fff;text-align:left;user-select:none}
 .page img{display:block;width:100%;height:100%}
 .ov{position:absolute;inset:0}
@@ -99,7 +103,7 @@ main{flex:1;display:flex;min-height:0}
 .tb button{padding:1px 8px;font-size:12px}
 
 /* ispettore */
-aside{width:300px;background:var(--bar);border-left:1px solid var(--line);padding:14px 16px;overflow:auto}
+aside{container-type:inline-size;flex:none;width:min(300px,45vw);overflow-x:hidden;background:var(--bar);border-left:1px solid var(--line);padding:14px 16px;overflow:auto}
 .ah{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}
 #bPanel{padding:0 8px;font-size:14px;line-height:22px}
 aside.closed{width:auto;padding:10px 6px}
@@ -112,14 +116,15 @@ aside input:focus,aside select:focus{outline:2px solid var(--acc);outline-offset
 .row label{margin:0;display:flex;gap:5px;align-items:center;color:var(--ink)}
 .hint{color:var(--mute);font-size:12.5px;line-height:1.55}
 .help p{margin:0 0 12px}
-.help dl{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;margin:0 0 14px;align-items:baseline}
+.help dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;margin:0 0 14px;align-items:baseline}
 .help dt{color:var(--ink);font-weight:600;white-space:nowrap}
 .help dd{margin:0}
 .help .keys dt{font-weight:400}
+@container (max-width:250px){.help dl{grid-template-columns:1fr;gap:0}.help dd{margin-bottom:6px}}
 kbd{font:11px var(--num);padding:1px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--well);color:var(--ink)}
 
 /* barra di stato */
-footer{display:flex;align-items:center;gap:12px;padding:5px 14px;background:var(--bar);border-top:1px solid var(--line);font-size:12px;color:var(--mute);min-width:0}
+footer{display:flex;align-items:center;gap:12px;padding:5px 14px;background:var(--bar);border-top:1px solid var(--line);font-size:12px;color:var(--mute);min-width:0;overflow:hidden}
 #name{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .chip{padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:600;white-space:nowrap}
 .chip:empty{display:none}
@@ -156,13 +161,6 @@ footer .keys{white-space:nowrap}
     <button id="tArea" title="Trascina un rettangolo: copre l'area e crea un testo mobile">Area</button>
     <button id="tAdd" title="Clic per creare un testo mobile">Aggiungi testo</button>
   </div>
-  <span class="spacer"></span>
-  <div class="grp" role="group" aria-label="Cronologia">
-    <button id="bUndo" class="ico" disabled title="Annulla (Ctrl+Z)" aria-label="Annulla"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><button id="bRedo" class="ico" disabled title="Ripristina (Ctrl+Y)" aria-label="Ripristina"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
-  </div>
-  <button id="bFix" class="ok" disabled title="Fissa sul PDF tutti i testi mobili">Fissa tutto (0)</button>
-  <button id="bSave" class="primary" disabled title="Ctrl+S: sovrascrive il file aperto">Salva</button>
-  <button id="bSaveAs" disabled title="Scarica una copia">Salva copia…</button>
   </div>
   <div class="tbr tb2">
   <span class="lbl">Livelli</span>
@@ -178,10 +176,17 @@ footer .keys{white-space:nowrap}
     <input id="q" type="search" placeholder="Cerca… (Ctrl+F)" aria-label="Cerca testo">
     <span class="cnt" id="qc"></span><button class="nav" id="qPrev" title="Precedente (Maiusc+Invio)">&#9650;</button><button class="nav" id="qNext" title="Successivo (Invio)">&#9660;</button>
   </div>
-  <span class="spacer"></span>
-  <div class="grp" role="group" aria-label="Zoom">
+  </div>
+  <div class="tbr tb3">
+    <div class="grp" role="group" aria-label="Zoom">
     <button id="zOut" title="Riduci" aria-label="Riduci">−</button><span id="zv">150%</span><button id="zIn" title="Ingrandisci" aria-label="Ingrandisci">+</button>
   </div>
+    <div class="grp" role="group" aria-label="Cronologia">
+    <button id="bUndo" class="ico" disabled title="Annulla (Ctrl+Z)" aria-label="Annulla"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><button id="bRedo" class="ico" disabled title="Ripristina (Ctrl+Y)" aria-label="Ripristina"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+  </div>
+    <button id="bFix" class="ok" disabled title="Fissa sul PDF tutti i testi mobili">Fissa tutto (0)</button>
+    <button id="bSave" class="primary" disabled title="Ctrl+S: sovrascrive il file aperto">Salva</button>
+    <button id="bSaveAs" disabled title="Scarica una copia">Salva copia…</button>
   </div>
 </header>
 <main>
