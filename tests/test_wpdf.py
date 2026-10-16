@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from wpdf import app  # noqa: E402
@@ -94,6 +94,27 @@ class Layers(unittest.TestCase):
             app.apply_edit({"page": 0, "origin": [72, 300], "text": str(i), "size": 8, "color": "#000000"})
         self.assertLessEqual(len(app.State.history), app.State.MAX_HISTORY)
         self.assertEqual(app.State.idx, len(app.State.history) - 1)
+
+
+class Robustness(unittest.TestCase):
+    def setUp(self):
+        app.State.load(sample_pdf(), "t.pdf", "C:/dati/t.pdf")
+
+    def test_invalid_file_leaves_state_untouched(self):
+        doc, path, name = app.State.doc, app.State.path, app.State.name
+        with self.assertRaises(Exception):
+            app.State.load(b"non e' un pdf", "altro.pdf", "C:/dati/altro.pdf")
+        # altrimenti 'Salva' scriverebbe il documento aperto sopra altro.pdf
+        self.assertIs(app.State.doc, doc)
+        self.assertEqual((app.State.path, app.State.name), (path, name))
+
+    def test_page_png_out_of_range(self):
+        self.assertIsNone(app.page_png(1, 2))
+        self.assertTrue(app.page_png(0, 2).startswith(b"\x89PNG"))
+
+    def test_page_png_zoom_is_clamped(self):
+        w = fitz.open(stream=app.page_png(0, 1000), filetype="png")[0].rect.width
+        self.assertLessEqual(w, app.State.doc[0].rect.width * 8 + 1)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,15 @@
 # Changelog
 
+## Non rilasciato
+- **Cerca** (Ctrl+F): trova il testo in tutti i livelli, Invio/Maiusc+Invio o frecce per scorrere i risultati.
+- Pannello laterale nascondibile (chiuso di default su finestre strette).
+- Corretto: un errore di sintassi bloccava l'intera pagina (anche il drag and drop).
+- Corretto: aprire un file non valido poteva far salvare il documento aperto sopra quel file.
+- Corretto: se "Fissa tutto" falliva a metà, la pagina non mostrava i testi già fissati.
+- Aprire un altro file chiede conferma se ci sono testi non fissati; errori di apertura segnalati.
+- Pagine inesistenti e zoom fuori misura gestiti dal server.
+- Usa `import pymupdf` (il modulo `fitz` è deprecato).
+
 ## 0.1.0
 Prima versione pubblica.
 - Editor PDF nel browser, in locale (nessun dato lascia il computer).

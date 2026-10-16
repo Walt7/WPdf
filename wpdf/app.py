@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote
 
-import fitz
+import pymupdf as fitz
 
 from . import __version__
 
@@ -31,8 +31,9 @@ class State:
 
     @classmethod
     def load(cls, data, name, path=None):
+        doc = fitz.open(stream=data, filetype="pdf")   # prima di toccare lo stato: un file non valido non cambia nulla
         cls.path = str(path) if path else None
-        cls.doc = fitz.open(stream=data, filetype="pdf")
+        cls.doc = doc
         cls.name = name
         cls.history = [data]
         cls.idx = 0
@@ -335,6 +336,14 @@ def pick_file():
     return p
 
 
+def page_png(pno, z):
+    """Immagine della pagina, o None se non esiste. Zoom limitato: evita immagini enormi."""
+    if not State.doc or not 0 <= pno < len(State.doc):
+        return None
+    z = min(8.0, max(0.25, z))
+    return State.doc[pno].get_pixmap(matrix=fitz.Matrix(z, z), alpha=False).tobytes("png")
+
+
 def save_in_place():
     if not State.path:
         raise ValueError("nopath")
@@ -396,12 +405,16 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/info":
                 return self.send(200, self.info())
             m = re.fullmatch(r"/page/(\d+)\.png", u.path)
-            if m and State.doc:
-                z = float(q.get("z", ["2"])[0])
-                pix = State.doc[int(m[1])].get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
-                return self.send(200, pix.tobytes("png"), "image/png")
+            if m:
+                try:
+                    z = float(q.get("z", ["2"])[0])
+                except ValueError:
+                    return self.send(400, {"error": "bad zoom"})
+                png = page_png(int(m[1]), z)
+                if png is not None:
+                    return self.send(200, png, "image/png")
             m = re.fullmatch(r"/objects/(\d+)", u.path)
-            if m and State.doc:
+            if m and State.doc and int(m[1]) < len(State.doc):
                 return self.send(200, objects(int(m[1])))
             if u.path == "/download" and State.doc:
                 name = State.name
