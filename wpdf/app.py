@@ -19,6 +19,8 @@ PORT = int(os.environ.get("EDITOR_PORT", 8765))
 LOCK = threading.Lock()
 APP_TITLE = "WPdfEditor"
 APP_SUBJECT = "Modifica WPdfEditor"
+ASSETS = {"logo.svg": "image/svg+xml", "favicon.svg": "image/svg+xml", "favicon.ico": "image/x-icon",
+          "apple-touch-icon.png": "image/png"}   # file serviti da /assets/ (elenco chiuso)
 
 
 class State:
@@ -399,9 +401,9 @@ class H(BaseHTTPRequestHandler):
         with LOCK:
             if u.path == "/":
                 return self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
-            m = re.fullmatch(r"/assets/(logo|favicon)\.svg", u.path)
-            if m:
-                return self.send(200, (HERE / "assets" / f"{m[1]}.svg").read_bytes(), "image/svg+xml")
+            asset = "favicon.ico" if u.path == "/favicon.ico" else u.path.removeprefix("/assets/")
+            if asset in ASSETS:
+                return self.send(200, (HERE / "assets" / asset).read_bytes(), ASSETS[asset])
             if u.path == "/info":
                 return self.send(200, self.info())
             m = re.fullmatch(r"/page/(\d+)\.png", u.path)

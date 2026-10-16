@@ -27,4 +27,4 @@ packages = ["wpdf"]
 version = { attr = "wpdf.__version__" }
 
 [tool.setuptools.package-data]
-wpdf = ["index.html", "assets/*.svg", "assets/*.png"]
+wpdf = ["index.html", "assets/*.svg", "assets/*.png", "assets/*.ico"]

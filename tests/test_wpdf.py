@@ -108,6 +108,12 @@ class Robustness(unittest.TestCase):
         self.assertIs(app.State.doc, doc)
         self.assertEqual((app.State.path, app.State.name), (path, name))
 
+    def test_served_assets_exist(self):
+        for name in app.ASSETS:
+            self.assertTrue((app.HERE / "assets" / name).is_file(), name)
+        ico = (app.HERE / "assets" / "favicon.ico").read_bytes()
+        self.assertEqual(ico[:4], b"\0\0\1\0")   # intestazione ICO
+
     def test_page_png_out_of_range(self):
         self.assertIsNone(app.page_png(1, 2))
         self.assertTrue(app.page_png(0, 2).startswith(b"\x89PNG"))

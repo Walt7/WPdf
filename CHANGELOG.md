@@ -3,6 +3,7 @@
 ## Non rilasciato
 - **Cerca** (Ctrl+F): trova il testo in tutti i livelli, Invio/Maiusc+Invio o frecce per scorrere i risultati.
 - Pannello laterale nascondibile (chiuso di default su finestre strette).
+- Icone `favicon.ico` (16–256 px) e `apple-touch-icon.png`, generate da `tools/make_icons.py`.
 - Corretto: un errore di sintassi bloccava l'intera pagina (anche il drag and drop).
 - Corretto: aprire un file non valido poteva far salvare il documento aperto sopra quel file.
 - Corretto: se "Fissa tutto" falliva a metà, la pagina non mostrava i testi già fissati.
