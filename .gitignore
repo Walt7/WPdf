@@ -1,0 +1,10 @@
+# Documenti dell'utente: mai nel repository (contengono dati personali)
+*.pdf
+private/
+
+# Python / editor
+__pycache__/
+*.pyc
+*.tmp
+.venv/
+venv/

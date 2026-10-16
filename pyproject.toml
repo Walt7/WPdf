@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wpdf"
+dynamic = ["version"]
+description = "Editor PDF locale nel browser: modifica testi, livelli Originale/Foxit/App, testi mobili."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "AGPL-3.0-or-later" }
+dependencies = ["pymupdf>=1.24"]
+keywords = ["pdf", "editor", "annotations", "freetext"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business",
+  "Environment :: Web Environment",
+]
+
+[project.scripts]
+wpdf = "wpdf.app:main"
+
+[tool.setuptools]
+packages = ["wpdf"]
+
+[tool.setuptools.dynamic]
+version = { attr = "wpdf.__version__" }
+
+[tool.setuptools.package-data]
+wpdf = ["index.html", "assets/*.svg", "assets/*.png"]
