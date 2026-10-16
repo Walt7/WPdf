@@ -133,8 +133,7 @@ async function openPicker(){
   try{
     const r=await post('/pick');if(r.cancelled)return;
     if(r.nopicker){   // niente finestra di sistema: percorso scritto a mano, oppure scelta file (senza salvataggio diretto)
-      const path=prompt('Percorso completo del PDF.
-Lascia vuoto per scegliere un file (poi potrai solo scaricare la copia).');
+      const path=prompt('Percorso completo del PDF.\nLascia vuoto per scegliere un file (poi potrai solo scaricare la copia).');
       if(path===null)return;
       if(!path.trim()){$('#file').click();return}
       OC=null;pend=[];selId=null;await refresh(await post('/open-path',{path:path.trim()}));return;
