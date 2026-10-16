@@ -1,6 +1,7 @@
 # Changelog
 
 ## Non rilasciato
+- Nuova interfaccia: barra su due righe (comandi; livelli, ricerca e zoom), controlli raggruppati, barra di stato con file, modalità di salvataggio e pagine, schermata iniziale con le spiegazioni dei livelli, tema scuro rifinito.
 - **Cerca** (Ctrl+F): trova il testo in tutti i livelli, Invio/Maiusc+Invio o frecce per scorrere i risultati.
 - Pannello laterale nascondibile (chiuso di default su finestre strette).
 - Icone `favicon.ico` (16–256 px) e `apple-touch-icon.png`, generate da `tools/make_icons.py`.
