@@ -8,3 +8,8 @@ __pycache__/
 *.tmp
 .venv/
 venv/
+
+# Build eseguibile (build.bat)
+build/
+dist/
+*.spec

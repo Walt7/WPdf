@@ -23,18 +23,25 @@ Serve Python 3.9 o superiore.
 
 **Direttamente da Git (consigliato)**
 ```bash
-pip install git+https://github.com/<utente>/wpdf
+pip install git+https://github.com/Walt7/WPdf
 wpdf                # oppure: wpdf mio_file.pdf
 ```
-Con `pipx` o `uv` non serve nemmeno installarlo: `pipx run --spec git+https://github.com/<utente>/wpdf wpdf` / `uvx --from git+https://github.com/<utente>/wpdf wpdf`.
+Con `pipx` o `uv` non serve nemmeno installarlo: `pipx run --spec git+https://github.com/Walt7/WPdf wpdf` / `uvx --from git+https://github.com/Walt7/WPdf wpdf`.
 
 **Da una copia del repository**
 ```bash
-git clone https://github.com/<utente>/wpdf
-cd wpdf
+git clone https://github.com/Walt7/WPdf
+cd WPdf
 pip install -r requirements.txt
 python -m wpdf      # Windows: doppio clic su "Avvia WPdf.bat" - Linux/macOS: ./run.sh
 ```
+
+**Eseguibile per Windows (un solo file)**
+```bash
+python -m pip install pyinstaller
+build.bat
+```
+Crea `dist\WPdf.exe` (circa 30 MB, non serve Python per usarlo). Doppio clic per avviarlo, oppure trascina un PDF sull'icona per aprirlo subito. La finestra nera resta aperta finché WPdf è in uso: chiudila per uscire.
 
 Si apre il browser su `http://127.0.0.1:8765`. Opzioni: `--port`, `--no-browser`, `--version`. Se la porta e' occupata viene usata la successiva.
 
