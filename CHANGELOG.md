@@ -1,5 +1,10 @@
 # Changelog
 
+## Non rilasciato
+- **Firme salvate**: archivio locale e cifrato (DPAPI su Windows), firme disegnate, caricate da foto/scansione con sfondo reso trasparente o scritte in corsivo; si inseriscono come firma mobile da spostare e ridimensionare in proporzione, poi si fissano nella pagina mantenendo la trasparenza (anche su pagine ruotate).
+- Supporto per **tavoletta grafica**: pressione della penna, tutti i campioni della tavoletta, lato gomma.
+- Corretto: elementi con l'attributo `hidden` che restavano visibili.
+
 ## 1.0.0
 - **Aggiornamenti**: avviso quando esce una nuova versione (Novità, Aggiorna e riavvia, Più tardi, Salta questa versione). WPdf.exe si aggiorna da solo verificando dimensione e SHA-256 e riapre il file; con pip mostra il comando. Disattivabile con `--no-update-check`.
 - Link **Segnala un problema** nell'app e modelli per le issue su GitHub.

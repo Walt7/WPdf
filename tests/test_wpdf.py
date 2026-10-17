@@ -1,5 +1,6 @@
 """Test di base: python -m unittest discover -s tests"""
 import hashlib
+import os
 import sys
 import tempfile
 import unittest
@@ -8,7 +9,7 @@ from pathlib import Path
 import pymupdf as fitz
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from wpdf import app, update  # noqa: E402
+from wpdf import app, signatures, update, vault  # noqa: E402
 
 
 def sample_pdf():
@@ -178,6 +179,86 @@ class Dirty(unittest.TestCase):
             self.assertNotEqual(app.State.idx, app.State.saved_idx)
             app.save_in_place()
             self.assertEqual(app.State.idx, app.State.saved_idx)
+
+
+def sig_png(w=40, h=20):
+    """Firma di prova: sfondo trasparente, quadrato rosso in alto a sinistra."""
+    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, w, h), 1)
+    pix.set_rect(pix.irect, (0, 0, 0, 0))
+    pix.set_rect(fitz.IRect(0, 0, 10, 10), (200, 0, 0, 255))
+    return pix.tobytes("png")
+
+
+class Signatures(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        os.environ["WPDF_SIGNATURES_DIR"] = self.dir.name
+        signatures._vault = None   # nuova cartella, nuova chiave
+
+    def tearDown(self):
+        signatures._vault = None
+        os.environ.pop("WPDF_SIGNATURES_DIR", None)
+        self.dir.cleanup()
+
+    def test_store_rename_delete(self):
+        g = signatures.add(sig_png(), "Firma completa")
+        self.assertEqual([i["name"] for i in signatures.listing()], ["Firma completa"])
+        self.assertEqual(signatures.png(g["id"]), sig_png())
+        signatures.rename(g["id"], "Sigla")
+        self.assertEqual(signatures.listing()[0]["name"], "Sigla")
+        signatures.delete(g["id"])
+        self.assertEqual(signatures.listing(), [])
+
+    def test_files_are_encrypted(self):
+        g = signatures.add(sig_png(), "Mario Rossi")
+        files = {f.name: f.read_bytes() for f in Path(self.dir.name).iterdir()}
+        self.assertNotIn(b"\x89PNG", files[g["id"] + ".sig"])
+        self.assertNotIn(b"Mario", files["firme.dat"])
+        if sys.platform == "win32":   # chiave protetta con DPAPI, non i 32 byte grezzi
+            self.assertNotEqual(len(files["chiave.bin"]), 32)
+
+    def test_tampered_file_is_rejected(self):
+        g = signatures.add(sig_png(), "x")
+        f = Path(self.dir.name) / (g["id"] + ".sig")
+        b = bytearray(f.read_bytes())
+        b[30] ^= 1
+        f.write_bytes(bytes(b))
+        with self.assertRaises(ValueError):
+            signatures.png(g["id"])
+
+    def test_vault_roundtrip_and_key_reuse(self):
+        v = vault.Vault(self.dir.name)
+        blob = v.encrypt(b"dati della firma")
+        self.assertEqual(vault.Vault(self.dir.name).decrypt(blob), b"dati della firma")   # stessa chiave su disco
+
+    def test_rejects_non_transparent_or_bad_images(self):
+        opaque = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 20, 20), 0).tobytes("png")
+        for bad in (opaque, b"non e' un'immagine"):
+            with self.assertRaises(ValueError):
+                signatures.add(bad, "x")
+        with self.assertRaises(KeyError):
+            signatures.png("../chiave")
+
+    def test_place_keeps_transparency_on_rotated_pages(self):
+        g = signatures.add(sig_png(), "x")
+        for rot in (0, 90, 180, 270):
+            d = fitz.open()
+            p = d.new_page(width=300, height=200)
+            p.set_rotation(rot)
+            p.draw_rect(p.rect * p.derotation_matrix, color=None, fill=(0, 0.6, 0))   # sfondo verde
+            signatures.place(p, g["id"], (10, 10, 90, 50))
+            pix = p.get_pixmap(alpha=False)
+            self.assertEqual(pix.pixel(14, 14), (200, 0, 0), rot)   # in alto a sinistra come mostrato
+            self.assertEqual(pix.pixel(70, 40), (0, 153, 0), rot)   # zona vuota: si vede sotto
+
+    def test_sign_through_server_state(self):
+        g = signatures.add(sig_png(), "x")
+        app.State.load(sample_pdf(), "t.pdf")
+        rev = app.State.idx
+        signatures.place(app.State.doc[0], g["id"], (100, 100, 180, 140))
+        app.State.push()
+        self.assertEqual(app.State.idx, rev + 1)
+        self.assertEqual(len(app.State.doc[0].get_images()), 1)
 
 
 if __name__ == "__main__":

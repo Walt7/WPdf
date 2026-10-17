@@ -33,6 +33,7 @@ Pensato per moduli compilati (testi, date, codici fiscali nelle caselle) dove pr
 - Frecce ▲▼ per scorrere tutti gli elementi di un livello, anche su piu' pagine.
 - Salvataggio diretto sul file con copia di sicurezza, oppure "Salva copia".
 - Annulla / ripristina (ultimi 40 stati).
+- **Firme salvate**, come in Foxit: le crei una volta (disegnate con mouse, dito o tavoletta grafica, da foto/scansione o scritte) e le inserisci con sfondo trasparente, spostandole e ridimensionandole.
 
 ## Installazione e avvio
 Serve Python 3.9 o superiore.
@@ -60,6 +61,16 @@ build.bat
 Crea `dist\WPdf.exe` (circa 30 MB, non serve Python per usarlo). Doppio clic per avviarlo, oppure trascina un PDF sull'icona per aprirlo subito. La finestra nera resta aperta finché WPdf è in uso: chiudila per uscire.
 
 Si apre il browser su `http://127.0.0.1:8765`. Opzioni: `--port`, `--no-browser`, `--version`. Se la porta e' occupata viene usata la successiva.
+
+## Firme
+**Firma** nella barra apre l'archivio delle firme salvate. **Nuova firma** permette di:
+- **Disegnarla** con mouse, dito o **tavoletta grafica**: con la penna lo spessore segue la pressione e il lato gomma cancella. Su Windows, per la pressione con tavolette Wacom deve essere attivo *Windows Ink* nelle impostazioni del driver.
+- **Caricarla** da una foto o scansione su carta bianca: lo sfondo diventa trasparente, con una regolazione della pulizia e la scelta del colore.
+- **Scriverla** con un font corsivo.
+
+Poi **Usa**, clic sul documento, sposta e ridimensiona (le proporzioni restano), **Fissa**: la firma entra nel contenuto della pagina con lo sfondo trasparente.
+
+Le firme restano solo sul tuo computer (`%APPDATA%\WPdf\firme` su Windows, `~/.config/wpdf/firme` altrove), **cifrate**: su Windows la chiave è protetta con DPAPI e legata al tuo account, altrove è in un file leggibile solo dal tuo utente; ogni file ha un controllo di integrità. È una protezione minima: impedisce di usarle copiando la cartella, non a chi usa il tuo account già aperto. Una firma disegnata non è una firma digitale certificata.
 
 ## Aggiornamenti
 All'avvio WPdf chiede a GitHub qual è l'ultima versione: parte solo questa richiesta, nessun dato dei tuoi PDF.

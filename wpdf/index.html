@@ -28,6 +28,7 @@
   --acc:#8fa6ff;--on-acc:#0d1530;--acc-soft:#8fa6ff29;--ok:#4ade80;--on-ok:#05240e;--bad:#f87171;--warn:#fbbf24;
   --shadow:0 1px 2px #0009,0 12px 32px #000a;color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;overflow:hidden}   /* app a schermo intero: scorrono solo documento e pannello */
 body{margin:0;font:14px/1.4 var(--ui);background:var(--desk);color:var(--ink);display:flex;flex-direction:column;min-width:0}
 button,select,input{font:inherit;color:var(--ink)}
@@ -145,6 +146,45 @@ footer .keys{white-space:nowrap}
 #drop{display:none;position:fixed;inset:0;z-index:9;align-items:center;justify-content:center;background:color-mix(in srgb,var(--desk) 72%,transparent);backdrop-filter:blur(2px)}
 #drop *{pointer-events:none}
 #drop .dz{padding:30px 44px;border:2px dashed var(--acc);border-radius:16px;background:var(--bar);color:var(--acc);font-size:20px;font-weight:600;box-shadow:var(--shadow)}
+/* firme */
+.chk{background-color:#fff;background-image:conic-gradient(#e6e8ee 25%,transparent 0 50%,#e6e8ee 0 75%,transparent 0);background-size:14px 14px}
+.psig{padding:0;margin:-1px;cursor:move;background:transparent;border:1px dashed #2747c7}
+.psig.sel{margin:-2px;padding:0;background:transparent}
+.psig img{display:block;width:100%;height:100%;pointer-events:none;user-select:none}
+.tool-sign .ov{cursor:copy}
+dialog#sigDlg{width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid var(--line);border-radius:12px;background:var(--bar);color:var(--ink);box-shadow:var(--shadow);overflow:auto}
+dialog#sigDlg::backdrop{background:#0d111a80}
+.dh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font-size:17px}
+.db{padding:16px 18px;display:grid;gap:14px}
+.seg{display:inline-flex;gap:2px;padding:2px;background:var(--well);border-radius:8px;width:max-content;max-width:100%;flex-wrap:wrap}
+.seg button{background:transparent;border-color:transparent}
+.seg button.on{background:var(--bar);border-color:var(--line);color:var(--acc);font-weight:600}
+.sigs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.sigc{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bar)}
+.sigc .th{height:90px;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sigc .th img{max-width:92%;max-height:80px}
+.sigc .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sigc .nm input{width:100%;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bar)}
+.sigc .ac{display:flex;gap:6px;flex-wrap:wrap}
+.sigc .ac button{padding:3px 9px;font-size:12.5px}
+.sigc .ac .del{color:var(--bad)}
+.pad{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pad canvas{display:block;width:100%;height:220px;touch-action:none;cursor:crosshair}
+.pad .base{position:absolute;left:8%;right:8%;bottom:28%;border-bottom:1px dashed #9aa3b5;pointer-events:none}
+.pad .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a93a8;pointer-events:none;font-size:13px;text-align:center;padding:0 16px}
+.opts{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.opts label{margin:0;display:flex;gap:6px;align-items:center;color:var(--ink);font-size:13px}
+.opts input[type=text]{min-width:0;flex:1 1 220px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bar)}
+.opts select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bar)}
+.sw{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);padding:0}
+.sw.on{outline:2px solid var(--acc);outline-offset:2px}
+.drop2{display:grid;place-items:center;gap:6px;min-height:120px;padding:16px;border:2px dashed var(--line);border-radius:10px;color:var(--mute);text-align:center;cursor:pointer}
+.drop2.over{border-color:var(--acc);color:var(--acc)}
+.df{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--line)}
+.df .hint{flex:1 1 260px}
+.sigprev{max-width:100%;height:140px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sigprev img{max-height:120px;max-width:96%}
 /* aggiornamenti */
 #upd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:var(--acc-soft);border-bottom:1px solid var(--line);font-size:13px}
 #upd[hidden]{display:none}
@@ -174,6 +214,7 @@ button.link:hover:not(:disabled){color:var(--acc)}
     <button id="tText" class="on" title="Clic su un testo: diventa un testo mobile">Modifica testo</button>
     <button id="tArea" title="Trascina un rettangolo: copre l'area e crea un testo mobile">Area</button>
     <button id="tAdd" title="Clic per creare un testo mobile">Aggiungi testo</button>
+    <button id="tSign" title="Inserisci una firma salvata, oppure creane una">Firma</button>
   </div>
   </div>
   <div class="tbr tb2">
@@ -228,6 +269,39 @@ button.link:hover:not(:disabled){color:var(--acc)}
   <span class="keys"><kbd>Ctrl</kbd>+<kbd>F</kbd> cerca · <kbd>Ctrl</kbd>+<kbd>S</kbd> salva</span><button id="ver" class="link" title="Controlla se c'è una versione più recente"></button>
 </footer>
 <div id="drop"><div class="dz">Rilascia il PDF per aprirlo</div></div>
+<dialog id="sigDlg" aria-labelledby="sigTitle">
+  <div class="dh"><h2 id="sigTitle">Firme</h2><button id="sigClose" aria-label="Chiudi">✕</button></div>
+  <div class="db">
+    <div class="seg" role="tablist"><button id="sgTabList" class="on" role="tab">Le mie firme</button><button id="sgTabNew" role="tab">Nuova firma</button></div>
+    <section id="sgList"></section>
+    <section id="sgNew" hidden>
+      <div class="seg" role="tablist" style="margin-bottom:12px"><button data-m="draw" class="on">Disegna</button><button data-m="image">Carica immagine</button><button data-m="type">Scrivi</button></div>
+      <div id="mDraw">
+        <div class="pad chk"><canvas id="padC"></canvas><div class="base"></div><div class="ph" id="padPh">Firma qui con il mouse, la penna o il dito</div></div>
+        <div class="opts" style="margin-top:10px"><span class="hint">Colore</span><button class="sw on" data-c="#16161d" style="background:#16161d" aria-label="Nero"></button><button class="sw" data-c="#1d3a9e" style="background:#1d3a9e" aria-label="Blu"></button>
+          <label>Spessore <input type="range" id="padW" min="1" max="8" step="0.5" value="3"></label><button id="padClear">Cancella</button>
+          <span class="chip good" id="padPen" hidden>Penna rilevata: pressione attiva</span></div>
+        <p class="hint" style="margin:8px 0 0">Funziona con mouse, dito e tavoletta grafica (la penna varia lo spessore con la pressione, il lato gomma cancella).</p>
+      </div>
+      <div id="mImage" hidden>
+        <label class="drop2" id="imgDrop"><input type="file" id="imgFile" accept="image/*" hidden><b>Trascina qui la foto o la scansione della firma</b><span>oppure clicca per sceglierla (PNG, JPG). Meglio su carta bianca, ben illuminata.</span></label>
+        <div id="imgEdit" hidden>
+          <div class="sigprev chk"><img id="imgPrev" alt="Anteprima della firma"></div>
+          <div class="opts" style="margin-top:10px"><label>Pulizia sfondo <input type="range" id="imgThr" min="120" max="245" value="200"></label>
+            <label>Colore <select id="imgCol"><option value="orig">Originale</option><option value="#16161d">Nero</option><option value="#1d3a9e">Blu</option></select></label><button id="imgOther">Altra immagine</button></div>
+        </div>
+      </div>
+      <div id="mType" hidden>
+        <div class="opts"><input type="text" id="typeTxt" placeholder="Nome e cognome" maxlength="60">
+          <select id="typeFont"><option>Segoe Script</option><option>Ink Free</option><option>Lucida Handwriting</option><option>Brush Script MT</option><option value="cursive">Corsivo del sistema</option></select>
+          <span class="hint">Colore</span><button class="sw on" data-c="#16161d" style="background:#16161d" aria-label="Nero"></button><button class="sw" data-c="#1d3a9e" style="background:#1d3a9e" aria-label="Blu"></button></div>
+        <div class="sigprev chk" style="margin-top:10px"><img id="typePrev" alt="Anteprima della firma" hidden></div>
+      </div>
+      <div class="opts" style="margin-top:14px"><input type="text" id="sigName" placeholder="Nome della firma (es. Firma completa, Sigla)" maxlength="60"><button id="sigSave" class="primary">Salva firma</button></div>
+    </section>
+  </div>
+  <div class="df"><span class="hint">Le firme restano su questo computer, cifrate, e non vengono mai inviate. Una firma disegnata non è una firma digitale certificata.</span></div>
+</dialog>
 <div id="toast"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -394,6 +468,7 @@ $('#q').onkeydown=e=>{
 $('#qPrev').onclick=()=>find(-1);$('#qNext').onclick=()=>find(1);
 
 /* ---------- testi mobili ---------- */
+const TRASH='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg>';
 function newPend(o){
   const p={id:++uid,page:0,x:0,y:0,text:'',size:7,color:'#000000',bold:false,italic:false,font:'',layer:'app',covers:null,xrefs:null,hide:null,title:'',subject:'',pitch:0,...o};
   pend.push(p);selId=p.id;drawPend(p);showPanel();updFix();
@@ -415,6 +490,7 @@ const warnTxt=p=>(BADCH.test(p.text)?'Alcuni caratteri non esistono nei font del
   (p.layer==='orig'&&!/helvetica|arial/i.test(p.font)?'Il font originale ('+esc(p.font||'?')+') viene sostituito dalla famiglia scelta.':'');
 
 function drawPend(p){
+  if(p.kind==='sig')return drawSig(p);
   const ov=ovOf(p.page);if(!ov)return;
   for(const [x0,y0,x1,y1] of p.hide||[]){
     const c=document.createElement('div');c.className='cover';c.dataset.cid=p.id;
@@ -447,6 +523,7 @@ function drawPend(p){
 }
 function styleP(p,d){
   d=d||document.querySelector(`.pend[data-id="${p.id}"]`);if(!d)return;
+  if(p.kind==='sig'){Object.assign(d.style,{left:p.x*zoom+'px',top:p.y*zoom+'px',width:p.w*zoom+'px',height:p.h*zoom+'px'});return}
   const inp=d.querySelector('input');
   inp.style.font=cssFont(p);inp.style.color=p.color;
   d.style.top=(p.y-ASC*p.size)*zoom+'px';
@@ -503,6 +580,7 @@ const cur=()=>pend.find(p=>p.id===selId);
 function showPanel(){
   const p=cur();
   if(!p){$('#ptitle').textContent='Pannello';$('#panel').innerHTML=HELP;return}
+  if(p.kind==='sig')return sigPanel(p);
   $('#ptitle').textContent='Testo mobile';
   $('#panel').innerHTML=`
    <div style="margin-bottom:6px"><span class="badge" style="background:${LCOL[p.layer]}">${LNAME[p.layer]}</span>
@@ -535,18 +613,23 @@ function remapXrefs(m){   // annotazioni ricreate dal server: aggiorna i riferim
   for(const q of pend)if(q.xrefs)q.xrefs=q.xrefs.map(x=>m[x]??x);
 }
 async function fix(list){
-  list.filter(p=>!p.text&&!p.covers&&!p.xrefs).forEach(del);   // nuovi testi vuoti: scartati
-  list=list.filter(p=>p.text||p.covers||p.xrefs);
+  const keep=p=>p.kind==='sig'||p.text||p.covers||p.xrefs;
+  list.filter(p=>!keep(p)).forEach(del);   // nuovi testi vuoti: scartati
+  list=list.filter(keep);
   if(!list.length)return;
   try{
     let i=info;
     for(const p of list){
+      if(p.kind==='sig'){
+        i=await post('/sign',{page:p.page,sid:p.sid,rect:[p.x,p.y,p.x+p.w,p.y+p.h]});
+        pend=pend.filter(q=>q.id!==p.id);if(selId===p.id)selId=null;continue;
+      }
       i=await post('/edit',{page:p.page,covers:p.covers||undefined,xrefs:p.xrefs||undefined,title:p.title||undefined,subject:p.subject||undefined,pitch:p.pitch||undefined,origin:[p.x,p.y],font:p.font,
         text:p.text,size:p.size,color:p.color,bold:p.bold,italic:p.italic});
       pend=pend.filter(q=>q.id!==p.id);if(selId===p.id)selId=null;
       remapXrefs(i.remap);
     }
-    await refresh(i);toast(list.length>1?`${list.length} testi fissati`:'Testo fissato');
+    await refresh(i);toast(list.length>1?`${list.length} elementi fissati`:list[0].kind==='sig'?'Firma fissata':'Testo fissato');
   }catch(e){
     try{await refresh(await api('/info'))}catch{}   // i testi gia' fissati prima dell'errore restano: mostra lo stato reale
     alert('Errore: '+e.message);
@@ -579,13 +662,15 @@ function hookOverlay(ov,n){
       newPend({page:n,x:r[0]+1,y:r[3]-0.25*size-0.4,size:7,layer:'orig',covers:[r],hide:[r],srcKey:'a'+Math.random()});
     }else if(tool==='add'){
       newPend({page:n,x:s0[0],y:s0[1]+3});
+    }else if(tool==='sign'){
+      placeSig(n,s0);
     }
   };
 }
 
 function setTool(t){
   tool=t;
-  for(const [k,id] of [['text','tText'],['area','tArea'],['add','tAdd']])$('#'+id).classList.toggle('on',k===t);
+  for(const [k,id] of [['text','tText'],['area','tArea'],['add','tAdd'],['sign','tSign']])$('#'+id).classList.toggle('on',k===t);
   render();
 }
 
@@ -627,13 +712,13 @@ addEventListener('keydown',e=>{
   if(e.target.matches('input'))return;
   if(e.ctrlKey&&e.key==='z'){e.preventDefault();$('#bUndo').click()}
   else if(e.ctrlKey&&e.key==='y'){e.preventDefault();$('#bRedo').click()}
-  else if(e.key==='Escape')deselect();
+  else if(e.key==='Escape'){if(tool==='sign'&&!cur())setTool('text');deselect()}
   else if(e.key==='Delete'&&cur())del(cur());
   else if(e.ctrlKey&&e.key.startsWith('Arrow')&&cur()){e.preventDefault();nudge(cur(),e.key)}
 });
-['dragenter','dragover'].forEach(t=>addEventListener(t,e=>{e.preventDefault();$('#drop').style.display='flex'}));
+['dragenter','dragover'].forEach(t=>addEventListener(t,e=>{e.preventDefault();if(!$('#sigDlg').open)$('#drop').style.display='flex'}));
 ['dragleave','drop'].forEach(t=>addEventListener(t,e=>{e.preventDefault();$('#drop').style.display='none'}));
-addEventListener('drop',e=>openFile(e.dataTransfer.files[0]));
+addEventListener('drop',e=>{if(!$('#sigDlg').open)openFile(e.dataTransfer.files[0])});
 addEventListener('beforeunload',e=>{if(pend.length){e.preventDefault();e.returnValue=''}});
 function setPanel(closed){
   $('aside').classList.toggle('closed',closed);
@@ -646,6 +731,205 @@ $('#bPanel').onclick=()=>{
 };
 let panelPref=null;try{panelPref=localStorage.getItem('wpdf.panelClosed')}catch{}
 setPanel(panelPref===null?innerWidth<900:panelPref==='1');   // senza preferenza: chiuso su finestre strette
+/* ---------- firme ---------- */
+const MM=72/25.4;   // punti PDF per millimetro
+let sigSel=null,sigCache=[],sigMode='draw';
+async function loadSigs(){try{sigCache=await api('/signatures')}catch(e){sigCache=[];toast('Firme non leggibili: '+e.message)}return sigCache}
+async function openSigs(){
+  const d=$('#sigDlg');if(!d.open)d.showModal();
+  await renderSigList();sigTab(sigCache.length?'list':'new');
+}
+function sigTab(t){
+  $('#sgTabList').classList.toggle('on',t==='list');$('#sgTabNew').classList.toggle('on',t==='new');
+  $('#sgList').hidden=t!=='list';$('#sgNew').hidden=t!=='new';
+  if(t==='new')setMode(sigMode);
+}
+async function renderSigList(){
+  const L=await loadSigs(),el=$('#sgList');
+  if(!L.length){el.innerHTML='<p class="hint">Non hai ancora firme salvate. Creane una da <b>Nuova firma</b>: la ritroverai qui ogni volta che apri WPdf.</p>';return}
+  el.innerHTML='<div class="sigs">'+L.map(g=>`<div class="sigc" data-sid="${g.id}"><div class="th chk"><img src="/signatures/${g.id}.png" alt="${esc(g.name)}"></div>
+    <div class="nm" title="${esc(g.name)}">${esc(g.name)}</div>
+    <div class="ac"><button class="primary" data-a="use">Usa</button><button data-a="ren">Rinomina</button><button class="del" data-a="del">Elimina</button></div></div>`).join('')+'</div>';
+}
+$('#sgList').onclick=async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const card=b.closest('.sigc');if(!card)return;
+  const sid=card.dataset.sid,g=sigCache.find(x=>x.id===sid);
+  if(b.dataset.a==='use')useSig(sid);
+  else if(b.dataset.a==='del'){
+    if(!confirm(`Eliminare la firma "${g.name}" da questo computer?`))return;
+    try{await post(`/signatures/${sid}/delete`);toast('Firma eliminata');if(sigSel===sid)sigSel=null;renderSigList()}catch(x){alert('Errore: '+x.message)}
+  }else if(b.dataset.a==='ren'){
+    const nm=card.querySelector('.nm');nm.innerHTML=`<input type="text" maxlength="60" value="${esc(g.name)}" aria-label="Nuovo nome">`;
+    const inp=nm.querySelector('input');inp.focus();inp.select();
+    const done=async ok=>{inp.onblur=null;if(ok&&inp.value.trim()&&inp.value.trim()!==g.name){try{await post(`/signatures/${sid}/rename`,{name:inp.value})}catch(x){alert('Errore: '+x.message)}}renderSigList()};
+    inp.onkeydown=ev=>{if(ev.key==='Enter')done(true);if(ev.key==='Escape'){ev.preventDefault();done(false)}};inp.onblur=()=>done(true);
+  }
+};
+function useSig(sid){
+  sigSel=sid;$('#sigDlg').close();
+  if(!info.open){toast('Apri prima un PDF, poi clicca dove firmare');return}
+  setTool('sign');toast('Clicca sul documento dove mettere la firma');
+}
+$('#sgTabList').onclick=()=>{sigTab('list');renderSigList()};$('#sgTabNew').onclick=()=>sigTab('new');
+$('#sigClose').onclick=()=>$('#sigDlg').close();
+$('#tSign').onclick=openSigs;
+
+/* creazione: disegna / carica immagine / scrivi */
+function setMode(m){
+  sigMode=m;
+  document.querySelectorAll('#sgNew [data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('#mDraw').hidden=m!=='draw';$('#mImage').hidden=m!=='image';$('#mType').hidden=m!=='type';
+  if(m==='draw')padInit(false);if(m==='type')renderType();
+}
+document.querySelectorAll('#sgNew [data-m]').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function trim(c){   // ritaglia ai pixel visibili, con un piccolo margine; null se vuota
+  const x=c.getContext('2d'),W=c.width,H=c.height,a=x.getImageData(0,0,W,H).data;
+  let x0=W,y0=H,x1=-1,y1=-1;
+  for(let y=0;y<H;y++)for(let i=0;i<W;i++)if(a[(y*W+i)*4+3]>12){if(i<x0)x0=i;if(i>x1)x1=i;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1<0)return null;
+  const m=6;x0=Math.max(0,x0-m);y0=Math.max(0,y0-m);x1=Math.min(W-1,x1+m);y1=Math.min(H-1,y1+m);
+  const k=Math.min(1,1400/(x1-x0+1),1400/(y1-y0+1)),o=document.createElement('canvas');
+  o.width=Math.max(4,Math.round((x1-x0+1)*k));o.height=Math.max(4,Math.round((y1-y0+1)*k));
+  o.getContext('2d').drawImage(c,x0,y0,x1-x0+1,y1-y0+1,0,0,o.width,o.height);return o;
+}
+const pad={color:'#16161d',dirty:false,ready:false};
+function padInit(force){
+  const c=$('#padC'),w=c.getBoundingClientRect().width;if(!w)return;
+  if(!force&&pad.ready&&c.width===Math.round(w*2))return;
+  const k=2;c.width=Math.round(w*k);c.height=220*k;
+  const x=c.getContext('2d');x.setTransform(k,0,0,k,0,0);x.lineCap='round';x.lineJoin='round';
+  pad.ready=true;pad.dirty=false;$('#padPh').hidden=false;
+}
+(()=>{   // tratto: mouse e dito seguono la velocita', la penna (tavoletta grafica) la pressione
+  const c=$('#padC');let lp=null,pm=null,lw=0,erase=false;
+  const pt=e=>{const r=c.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top,p:e.pressure,pen:e.pointerType==='pen'}};
+  const width=(p,prev)=>{
+    const base=+$('#padW').value;
+    if(p.pen&&p.p>0)return base*(0.25+1.5*p.p);   // pressione 0..1 della penna
+    const d=prev?Math.hypot(p.x-prev.x,p.y-prev.y):0;
+    return base*Math.max(.55,Math.min(1.35,1.4-d/28));
+  };
+  const ctx=()=>{const x=c.getContext('2d');x.globalCompositeOperation=erase?'destination-out':'source-over';return x};
+  c.onpointerdown=e=>{
+    if(e.button===2&&e.pointerType!=='pen')return;
+    e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch{}
+    erase=e.pointerType==='pen'&&(e.button===5||(e.buttons&32)!==0);   // lato gomma della penna
+    lp=pm=pt(e);lw=width(lp,null);
+    if(lp.pen)$('#padPen').hidden=false;
+    if(!erase){const x=ctx();x.fillStyle=pad.color;x.beginPath();x.arc(lp.x,lp.y,lw/2,0,7);x.fill()}
+    pad.dirty=true;$('#padPh').hidden=true;
+  };
+  c.onpointermove=e=>{
+    if(!lp)return;
+    const x=ctx(),evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];   // tutti i campioni della tavoletta
+    for(const ce of evs.length?evs:[e]){
+      const p=pt(ce);if(p.x===lp.x&&p.y===lp.y)continue;
+      lw=lw*0.6+width(p,lp)*0.4;
+      const m={x:(lp.x+p.x)/2,y:(lp.y+p.y)/2};
+      x.strokeStyle=pad.color;x.lineWidth=erase?Math.max(14,lw*4):lw;
+      x.beginPath();x.moveTo(pm.x,pm.y);x.quadraticCurveTo(lp.x,lp.y,m.x,m.y);x.stroke();
+      pm=m;lp=p;
+    }
+  };
+  c.onpointerup=c.onpointercancel=()=>{lp=pm=null;erase=false};
+  c.oncontextmenu=e=>e.preventDefault();   // tasto laterale della penna
+})();
+$('#padClear').onclick=()=>padInit(true);
+document.querySelectorAll('#mDraw .sw').forEach(b=>b.onclick=()=>{pad.color=b.dataset.c;document.querySelectorAll('#mDraw .sw').forEach(x=>x.classList.toggle('on',x===b))});
+
+let imgSrc=null,imgOut=null;
+function loadImage(f){
+  if(!f||!/^image\//.test(f.type)){alert("Scegli un'immagine (PNG o JPG).");return}
+  const im=new Image();
+  im.onload=()=>{
+    const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');
+    c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    imgSrc=c;URL.revokeObjectURL(im.src);$('#imgDrop').hidden=true;$('#imgEdit').hidden=false;processImage();
+  };
+  im.onerror=()=>alert('Immagine non leggibile.');im.src=URL.createObjectURL(f);
+}
+function processImage(){   // sfondo chiaro -> trasparente, bordi sfumati
+  if(!imgSrc)return;
+  const c=document.createElement('canvas');c.width=imgSrc.width;c.height=imgSrc.height;
+  const x=c.getContext('2d');x.drawImage(imgSrc,0,0);
+  const d=x.getImageData(0,0,c.width,c.height),a=d.data,hi=+$('#imgThr').value,lo=hi-70,col=$('#imgCol').value;
+  const rgb=col==='orig'?null:[parseInt(col.slice(1,3),16),parseInt(col.slice(3,5),16),parseInt(col.slice(5,7),16)];
+  for(let i=0;i<a.length;i+=4){
+    const l=.299*a[i]+.587*a[i+1]+.114*a[i+2],t=Math.max(0,Math.min(1,(hi-l)/(hi-lo)));
+    a[i+3]=Math.round(a[i+3]*t);if(rgb){a[i]=rgb[0];a[i+1]=rgb[1];a[i+2]=rgb[2]}
+  }
+  x.putImageData(d,0,0);imgOut=trim(c);
+  $('#imgPrev').src=imgOut?imgOut.toDataURL():'';
+}
+$('#imgFile').onchange=e=>{loadImage(e.target.files[0]);e.target.value=''};
+$('#imgThr').oninput=processImage;$('#imgCol').onchange=processImage;
+$('#imgOther').onclick=()=>{imgSrc=imgOut=null;$('#imgEdit').hidden=true;$('#imgDrop').hidden=false};
+{const z=$('#imgDrop');
+ z.ondragover=e=>{e.preventDefault();e.stopPropagation();z.classList.add('over')};
+ z.ondragleave=()=>z.classList.remove('over');
+ z.ondrop=e=>{e.preventDefault();e.stopPropagation();z.classList.remove('over');loadImage(e.dataTransfer.files[0])};}
+
+let typeOut=null,typeColor='#16161d';
+function renderType(){
+  const t=$('#typeTxt').value.trim();typeOut=null;
+  if(!t){$('#typePrev').hidden=true;return}
+  const f=$('#typeFont').value,fam=f==='cursive'?'cursive':`"${f}",cursive`;
+  const c=document.createElement('canvas');c.width=1800;c.height=360;
+  const x=c.getContext('2d');x.font=`140px ${fam}`;x.fillStyle=typeColor;x.textBaseline='middle';x.fillText(t,30,180,1740);
+  typeOut=trim(c);$('#typePrev').src=typeOut?typeOut.toDataURL():'';$('#typePrev').hidden=!typeOut;
+}
+$('#typeTxt').oninput=renderType;$('#typeFont').onchange=renderType;
+document.querySelectorAll('#mType .sw').forEach(b=>b.onclick=()=>{typeColor=b.dataset.c;document.querySelectorAll('#mType .sw').forEach(x=>x.classList.toggle('on',x===b));renderType()});
+
+$('#sigSave').onclick=async()=>{
+  const c=sigMode==='draw'?(pad.dirty?trim($('#padC')):null):sigMode==='image'?imgOut:typeOut;
+  if(!c){alert(sigMode==='image'?"Carica prima un'immagine della firma.":sigMode==='type'?'Scrivi prima il nome.':'Disegna prima la firma.');return}
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const name=$('#sigName').value.trim()||(sigMode==='type'?$('#typeTxt').value.trim():'');
+  try{
+    const g=await api('/signatures?name='+encodeURIComponent(name),{method:'POST',body:blob});
+    $('#sigName').value='';padInit(true);toast(`Firma "${g.name}" salvata`);
+    await renderSigList();sigTab('list');
+  }catch(e){alert('Firma non salvata: '+e.message)}
+};
+
+/* firma mobile sul documento */
+function placeSig(n,pos){
+  const g=sigCache.find(v=>v.id===sigSel);
+  if(!g){openSigs();return}
+  const w=50*MM,h=w*g.h/g.w;   // 5 cm di larghezza, poi la ridimensioni
+  newPend({kind:'sig',page:n,sid:g.id,x:pos[0]-w/2,y:pos[1]-h/2,w,h,ratio:g.h/g.w,layer:'app'});
+}
+function drawSig(p){
+  const ov=ovOf(p.page);if(!ov)return;
+  const d=document.createElement('div');d.className='pend psig'+(p.id===selId?' sel':'');d.dataset.id=p.id;
+  d.innerHTML=`<img src="/signatures/${p.sid}.png" alt="Firma" draggable="false"><div class="tb"><button class="ok" data-a="fix">Fissa</button><button data-a="del" title="Scarta questa firma (non viene scritta sul PDF)" aria-label="Scarta">${TRASH}</button></div><div class="rs" title="Trascina per ridimensionare"></div>`;
+  ov.append(d);styleP(p,d);
+  d.querySelector('.rs').onmousedown=e=>{e.preventDefault();e.stopPropagation();resizeSig(p,d,e)};
+  const tb=d.querySelector('.tb');tb.onmousedown=e=>e.stopPropagation();
+  tb.onclick=e=>{const b=e.target.closest('button');const a=b&&b.dataset.a;if(a==='fix')fix([p]);if(a==='del')del(p)};
+  d.onmousedown=e=>{if(e.target.closest('.tb'))return;e.preventDefault();select(p.id);startDrag(p,d,e)};
+  d.onclick=e=>e.stopPropagation();
+}
+function resizeSig(p,d,e){
+  const sx=e.clientX,w0=p.w;
+  const mv=ev=>{p.w=Math.max(5*MM,w0+(ev.clientX-sx)/zoom);p.h=p.w*p.ratio;styleP(p,d);if($('#fW')){$('#fW').value=Math.round(p.w/MM);$('#fH').value=Math.round(p.h/MM)}};
+  const up=()=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up)};
+  addEventListener('mousemove',mv);addEventListener('mouseup',up);
+}
+function sigPanel(p){
+  $('#ptitle').textContent='Firma';
+  $('#panel').innerHTML=`<div class="sigprev chk"><img src="/signatures/${p.sid}.png" alt="Firma"></div>
+   <div class="row"><div style="flex:1"><label>Larghezza (mm)</label><input type="number" id="fW" min="5" max="300" step="1" value="${Math.round(p.w/MM)}"></div>
+   <div style="flex:1"><label>Altezza (mm)</label><input type="number" id="fH" disabled value="${Math.round(p.h/MM)}"></div></div>
+   <div class="row" style="margin-top:14px"><button id="fFix" class="ok">Fissa sul PDF</button><button id="fDel" title="Scarta questa firma" aria-label="Scarta">${TRASH}</button></div>
+   <p class="hint" style="margin-top:12px">Trascinala per spostarla, il quadratino blu per ridimensionarla: le proporzioni restano quelle della firma. Ctrl+frecce = spostamento fine.</p>
+   <p class="hint">Con <b>Fissa</b> la firma entra nella pagina con lo sfondo trasparente: da lì si toglie solo con Annulla.</p>`;
+  $('#fW').oninput=()=>{const v=parseFloat($('#fW').value);if(v>0){p.w=v*MM;p.h=p.w*p.ratio;$('#fH').value=Math.round(p.h/MM);styleP(p)}};
+  $('#fFix').onclick=()=>fix([p]);$('#fDel').onclick=()=>del(p);
+}
+
 /* ---------- aggiornamenti ---------- */
 const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
 let upd=null;

@@ -12,7 +12,7 @@ from urllib.parse import urlparse, parse_qs, quote
 
 import pymupdf as fitz
 
-from . import __version__, update
+from . import __version__, signatures, update
 
 HERE = Path(__file__).parent
 PORT = int(os.environ.get("EDITOR_PORT", 8765))
@@ -416,6 +416,23 @@ class H(BaseHTTPRequestHandler):
         self.send(200, {"restarting": True, "version": rel["latest"]})
         threading.Thread(target=restart, args=(exe,), daemon=True).start()
 
+    def signature_post(self, u, body):
+        try:
+            if u.path == "/signatures":
+                name = parse_qs(u.query).get("name", [""])[0]
+                return self.send(200, signatures.add(body, name))
+            m = re.fullmatch(r"/signatures/([0-9a-f]{16})/(rename|delete)", u.path)
+            if not m:
+                return self.send(404, {"error": "not found"})
+            if m[2] == "rename":
+                return self.send(200, signatures.rename(m[1], json.loads(body).get("name")))
+            signatures.delete(m[1])
+            return self.send(200, {"deleted": m[1]})
+        except KeyError:
+            return self.send(404, {"error": "firma non trovata"})
+        except Exception as e:
+            return self.send(400, {"error": str(e)})
+
     def do_GET(self):
         if not self.allowed():
             return self.send(403, {"error": "forbidden"})
@@ -428,6 +445,14 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, update.check(force="force" in q))
             except Exception as e:
                 return self.send(502, {"error": f"controllo aggiornamenti non riuscito: {e}"})
+        if u.path == "/signatures":
+            return self.send(200, signatures.listing())
+        m = re.fullmatch(r"/signatures/([0-9a-f]{16})\.png", u.path)
+        if m:
+            try:
+                return self.send(200, signatures.png(m[1]), "image/png")
+            except (KeyError, OSError, ValueError):
+                return self.send(404, {"error": "firma non trovata"})
         with LOCK:
             if u.path == "/":
                 return self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -464,6 +489,8 @@ class H(BaseHTTPRequestHandler):
         body = self.rfile.read(n)
         if u.path == "/update/install":
             return self.install_update()
+        if u.path == "/signatures" or u.path.startswith("/signatures/"):
+            return self.signature_post(u, body)
         if u.path == "/pick":
             try:
                 p = pick_file()
@@ -487,6 +514,10 @@ class H(BaseHTTPRequestHandler):
                 elif u.path == "/edit":
                     remap = apply_edit(json.loads(body))
                     return self.send(200, {**self.info(), "remap": remap})
+                elif u.path == "/sign":
+                    j = json.loads(body)
+                    signatures.place(State.doc[int(j["page"])], j["sid"], j["rect"])
+                    State.push()
                 elif u.path == "/delete":
                     j = json.loads(body)
                     delete_annots(j["page"], j["xrefs"])
