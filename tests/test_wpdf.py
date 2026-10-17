@@ -118,6 +118,174 @@ class Layers(unittest.TestCase):
         self.assertEqual(app.State.idx, len(app.State.history) - 1)
 
 
+def rotated_pdf(rot):
+    """Pagina 300x200 con /Rotate rot: un testo nel verso del PDF e uno dritto come mostrato."""
+    d = fitz.open()
+    p = d.new_page(width=300, height=200)
+    p.set_rotation(rot)
+    p.insert_text((72, 100), "Etichetta originale", fontname="helv", fontsize=10)
+    p.insert_text(fitz.Point(40, 75) * p.derotation_matrix, "Dritto", fontname="helv", fontsize=10, rotate=rot)
+    a = p.add_freetext_annot(fitz.Rect(150, 150, 260, 170), "NOME", fontsize=8, fontname="helv",
+                             text_color=(0, 0, 0), fill_color=None)
+    a.set_info(title="Altro Autore", subject="Macchina da scrivere", content="NOME")
+    return d.tobytes()
+
+
+def ink(page, clip):
+    """Riquadro dei pixel scuri della pagina resa (coordinate visualizzate, 1 px = 1 pt) dentro clip."""
+    pix = page.get_pixmap(alpha=False)
+    x0, y0, x1, y1 = (int(v) for v in fitz.Rect(clip) & fitz.Rect(0, 0, pix.width, pix.height))
+    pts = [(x, y) for y in range(y0, y1) for x in range(x0, x1) if pix.pixel(x, y)[0] < 128]
+    return fitz.Rect(min(x for x, _ in pts), min(y for _, y in pts), max(x for x, _ in pts) + 1,
+                     max(y for _, y in pts) + 1) if pts else None
+
+
+class RotatedPages(unittest.TestCase):
+    """Il browser vede la pagina ruotata: /objects e /edit usano coordinate visualizzate."""
+
+    def item(self, layer, text):
+        return [i for i in app.objects(0)[layer] if i["text"] == text][0]
+
+    def assertCovers(self, bbox, rot):
+        """Il riquadro inviato al browser contiene il testo come appare nell'immagine della pagina."""
+        found = ink(app.State.doc[0], fitz.Rect(bbox) + (-6, -6, 6, 6))
+        self.assertIsNotNone(found, rot)
+        self.assertTrue(fitz.Rect(bbox) + (-1.5, -1.5, 1.5, 1.5) in found or
+                        found in fitz.Rect(bbox) + (-1.5, -1.5, 1.5, 1.5), (rot, bbox, found))
+
+    def test_boxes_match_rendered_text(self):
+        for rot in (0, 90, 180, 270):
+            app.State.load(rotated_pdf(rot), "r.pdf")
+            for layer, text in (("orig", "Etichetta originale"), ("orig", "Dritto"), ("foxit", "NOME")):
+                self.assertCovers(self.item(layer, text)["bbox"], rot)
+            self.assertEqual(self.item("orig", "Dritto")["dir"], [1, 0], rot)
+
+    def test_edit_original_keeps_position_and_direction(self):
+        for rot in (0, 90, 180, 270):
+            for text in ("Etichetta originale", "Dritto"):
+                app.State.load(rotated_pdf(rot), "r.pdf")
+                it = self.item("orig", text)
+                app.apply_edit({"page": 0, "covers": it["covers"], "origin": it["origin"], "dir": it["dir"],
+                                "text": "Nuova", "size": 10, "color": "#000000"})
+                o = app.objects(0)
+                self.assertNotIn(text, texts(o["orig"]), rot)
+                new = self.item("orig", "Nuova")
+                self.assertEqual(new["dir"], it["dir"], (rot, text))
+                for a, b in zip(new["origin"], it["origin"]):
+                    self.assertAlmostEqual(a, b, delta=0.05, msg=(rot, text))
+                self.assertCovers(new["bbox"], rot)
+                self.assertEqual(o["app"], [])
+
+    def test_edit_annotation_keeps_position(self):
+        for rot in (0, 90, 180, 270):
+            app.State.load(rotated_pdf(rot), "r.pdf")
+            it = self.item("foxit", "NOME")
+            app.apply_edit({"page": 0, "xrefs": it["xrefs"], "title": it["title"], "subject": it["subject"],
+                            "origin": it["origin"], "dir": it["dir"], "text": "COGNOME", "size": it["size"],
+                            "color": it["color"]})
+            new = self.item("foxit", "COGNOME")
+            self.assertEqual(new["dir"], it["dir"], rot)
+            for a, b in zip(new["origin"], it["origin"]):
+                self.assertAlmostEqual(a, b, delta=0.5, msg=rot)
+            self.assertCovers(new["bbox"], rot)
+
+    def test_added_text_is_upright_where_clicked(self):
+        for rot in (0, 90, 180, 270):
+            app.State.load(rotated_pdf(rot), "r.pdf")
+            app.apply_edit({"page": 0, "origin": [120, 185], "text": "Aggiunto", "size": 10, "color": "#000000"})
+            new = self.item("app", "Aggiunto")
+            self.assertEqual(new["dir"], [1, 0], rot)
+            for a, b in zip(new["origin"], [120, 185]):
+                self.assertAlmostEqual(a, b, delta=0.5, msg=rot)
+            self.assertCovers(new["bbox"], rot)
+
+    def test_area_covers_displayed_rect(self):
+        for rot in (0, 90, 180, 270):
+            app.State.load(rotated_pdf(rot), "r.pdf")
+            x0, y0, x1, y1 = self.item("orig", "Dritto")["bbox"]
+            app.apply_edit({"page": 0, "covers": [[x0 - 1, y0 - 1, x1 + 1, y1 + 1]], "origin": [x0, y1 - 2],
+                            "text": "Area", "size": 8, "color": "#000000"})
+            o = app.objects(0)
+            self.assertNotIn("Dritto", texts(o["orig"]), rot)
+            self.assertIn("Etichetta originale", texts(o["orig"]), rot)
+            self.assertEqual(self.item("orig", "Area")["dir"], [1, 0], rot)
+
+    def test_letter_boxes_on_rotated_page(self):
+        for rot in (90, 270):
+            d = fitz.open()
+            p = d.new_page(width=300, height=200)
+            p.set_rotation(rot)
+            for i, ch in enumerate("ABCDE"):   # dritte come mostrate
+                p.insert_text(fitz.Point(40 + i * 14, 60) * p.derotation_matrix, ch, fontsize=8,
+                              fontname="helv", rotate=rot)
+            app.State.load(d.tobytes(), "c.pdf")
+            g = [i for i in app.objects(0)["orig"] if i.get("pitch")][0]
+            app.apply_edit({"page": 0, "covers": g["covers"], "origin": g["origin"], "pitch": g["pitch"],
+                            "dir": g["dir"], "text": "VWXYZ", "size": g["size"], "color": "#000000"})
+            n = [i for i in app.objects(0)["orig"] if i.get("pitch")][0]
+            self.assertEqual(n["text"], "VWXYZ", rot)
+            self.assertAlmostEqual(n["pitch"], g["pitch"], delta=0.3)
+            self.assertAlmostEqual(n["origin"][0], g["origin"][0], delta=0.5)
+
+
+class RotateCommand(unittest.TestCase):
+    """Correzione della rotazione: /rotate su una pagina o su tutte."""
+
+    def setUp(self):
+        d = fitz.open()
+        for _ in range(3):
+            d.insert_pdf(fitz.open(stream=rotated_pdf(0)))
+        app.State.load(d.tobytes(), "r.pdf")
+
+    def rotations(self):
+        return [p.rotation for p in app.State.doc]
+
+    def test_rotate_one_page_and_undo(self):
+        app.rotate_pages([1], 90)
+        self.assertEqual(self.rotations(), [0, 90, 0])
+        app.rotate_pages([1], -90)
+        app.rotate_pages([1], -90)
+        self.assertEqual(self.rotations(), [0, 270, 0])
+        app.State.goto(app.State.idx - 2)   # Annulla due volte
+        self.assertEqual(self.rotations(), [0, 90, 0])
+        self.assertNotEqual(app.State.idx, app.State.saved_idx)   # "Salva" la scrivera' sul file
+
+    def test_rotate_all(self):
+        app.rotate_pages([2], 90)
+        app.rotate_pages("all", 180)
+        self.assertEqual(self.rotations(), [180, 180, 270])
+
+    def test_rejects_bad_input(self):
+        rev = app.State.idx
+        for pages, delta in (([0], 45), ([3], 90), ([-1], 90), ([], 90), ("una", 90), ([True], 90), ([0], None)):
+            with self.assertRaises(ValueError, msg=(pages, delta)):
+                app.rotate_pages(pages, delta)
+        self.assertEqual(app.State.idx, rev)
+        self.assertEqual(self.rotations(), [0, 0, 0])
+
+    def test_texts_follow_the_rotation(self):
+        it0 = [i for i in app.objects(1)["orig"] if i["text"] == "Etichetta originale"][0]
+        app.rotate_pages([1], 90)
+        it = [i for i in app.objects(1)["orig"] if i["text"] == "Etichetta originale"][0]
+        page = app.State.doc[1]
+        self.assertEqual(it["origin"], _r2(fitz.Point(it0["origin"]) * page.rotation_matrix))
+        self.assertEqual(it["dir"], [0, 1])   # dritto prima, ora scende dall'alto verso il basso
+        app.apply_edit({"page": 1, "covers": it["covers"], "origin": it["origin"], "dir": it["dir"],
+                        "text": "Nuova", "size": 10, "color": "#000000"})
+        app.apply_edit({"page": 1, "origin": [120, 185], "text": "Aggiunto", "size": 10, "color": "#000000"})
+        o = app.objects(1)
+        new = [i for i in o["orig"] if i["text"] == "Nuova"][0]
+        self.assertEqual((new["dir"], new["origin"]), (it["dir"], it["origin"]))
+        self.assertEqual([i["dir"] for i in o["app"] if i["text"] == "Aggiunto"], [[1, 0]])
+        app.rotate_pages([1], -90)   # tornando dritta, il testo modificato e' dove era l'originale
+        back = [i for i in app.objects(1)["orig"] if i["text"] == "Nuova"][0]
+        self.assertEqual((back["dir"], back["origin"]), ([1, 0], it0["origin"]))
+
+
+def _r2(p):
+    return [round(v, 2) for v in p]
+
+
 class Robustness(unittest.TestCase):
     def setUp(self):
         app.State.load(sample_pdf(), "t.pdf", "C:/dati/t.pdf")
