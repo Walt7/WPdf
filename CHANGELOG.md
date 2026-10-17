@@ -1,6 +1,6 @@
 # Changelog
 
-## Non rilasciato
+## 1.1.0
 - **Firme salvate**: archivio locale e cifrato (DPAPI su Windows), firme disegnate, caricate da foto/scansione con sfondo reso trasparente o scritte in corsivo; si inseriscono come firma mobile da spostare e ridimensionare in proporzione, poi si fissano nella pagina mantenendo la trasparenza (anche su pagine ruotate).
 - Supporto per **tavoletta grafica**: pressione della penna, tutti i campioni della tavoletta, lato gomma.
 - Il testo **Originale** modificato (anche con Area) ora viene riscritto nella pagina invece che come annotazione: resta selezionabile, copiabile e cercabile in Foxit e negli altri lettori, e rimane nel livello Originale. I testi aggiunti e quelli Foxit restano annotazioni.
