@@ -49,13 +49,32 @@ class Layers(unittest.TestCase):
         self.assertEqual(len(g[0]["xrefs"]), 5)
         self.assertAlmostEqual(g[0]["pitch"], 14, delta=0.5)
 
-    def test_edit_original_becomes_app(self):
+    def test_edit_original_stays_page_text(self):
         it = [i for i in app.objects(0)["orig"] if i["text"] == "Etichetta originale"][0]
         app.apply_edit({"page": 0, "covers": it["covers"], "origin": it["origin"], "text": "Nuova",
                         "size": 10, "color": "#000000"})
         o = app.objects(0)
         self.assertNotIn("Etichetta originale", texts(o["orig"]))
-        self.assertIn("Nuova", texts(o["app"]))
+        new = [i for i in o["orig"] if i["text"] == "Nuova"]
+        self.assertEqual(len(new), 1)
+        self.assertEqual(new[0]["origin"], it["origin"])          # stessa posizione
+        self.assertEqual(o["app"], [])                             # nessuna annotazione
+        page = app.State.plain()[0]                                # come lo vede un lettore senza annotazioni
+        self.assertIn("Nuova", page.get_text())
+
+    def test_original_letter_boxes_stay_page_text(self):
+        d = fitz.open()
+        p = d.new_page()
+        for i, ch in enumerate("ABCDE"):
+            p.insert_text((72 + i * 14, 200), ch, fontsize=8, fontname="helv")
+        app.State.load(d.tobytes(), "c.pdf")
+        g = [i for i in app.objects(0)["orig"] if i.get("pitch")][0]
+        app.apply_edit({"page": 0, "covers": g["covers"], "origin": g["origin"], "pitch": g["pitch"],
+                        "text": "VWXYZ", "size": g["size"], "color": "#000000"})
+        o = app.objects(0)
+        self.assertEqual(texts(o["orig"]), ["VWXYZ"])
+        self.assertAlmostEqual([i for i in o["orig"] if i.get("pitch")][0]["pitch"], g["pitch"], delta=0.3)
+        self.assertEqual(o["app"], [])
 
     def test_edit_foxit_stays_foxit(self):
         it = [i for i in app.objects(0)["foxit"] if i["text"] == "NOME"][0]

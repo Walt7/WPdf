@@ -271,6 +271,23 @@ def _write(page, p, text):
     return [a.xref for a in made]
 
 
+def _write_text(page, p, text):
+    """Testo nel contenuto della pagina (non un'annotazione): selezionabile, copiabile e cercabile
+    in qualsiasi lettore, e rimane nel livello Originale."""
+    size = float(p.get("size", 8))
+    fn = pick_font(p.get("font"), p.get("bold"), p.get("italic"))
+    color = rgb(int(p.get("color", "#000000").lstrip("#"), 16))
+    ox, oy = p["origin"]
+    pitch = p.get("pitch")
+    if pitch:   # lettere in caselle: ognuna centrata nella sua casella
+        pieces = [(ox + i * pitch - fitz.get_text_length(ch, fontname=fn, fontsize=size) / 2, ch)
+                  for i, ch in enumerate(text) if ch.strip()]
+    else:
+        pieces = [(ox, text)]
+    for x, t in pieces:   # stesse coordinate (non ruotate) con cui il testo originale e' stato letto
+        page.insert_text((x, oy), t, fontsize=size, fontname=fn, color=color)
+
+
 def apply_edit(p):
     try:
         return _apply_edit(p)
@@ -304,7 +321,10 @@ def _apply_edit(p):
             remap[i["xrefs"][0]] = _write(page, {**i, "pitch": None}, i["text"])[0]
     text = p.get("text", "")
     if text:
-        _write(page, p, text)
+        if covers and not xrefs:   # modifica dell'Originale (o Area): resta testo della pagina
+            _write_text(page, p, text)
+        else:                      # testi aggiunti e annotazioni Foxit/App: restano annotazioni
+            _write(page, p, text)
     State.push()
     return remap
 

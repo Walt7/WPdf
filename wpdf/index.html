@@ -584,7 +584,7 @@ function showPanel(){
   $('#ptitle').textContent='Testo mobile';
   $('#panel').innerHTML=`
    <div style="margin-bottom:6px"><span class="badge" style="background:${LCOL[p.layer]}">${LNAME[p.layer]}</span>
-   <span class="hint"> ${p.layer==='orig'?"L'originale viene coperto e il nuovo testo diventa un elemento App.":(p.covers||p.xrefs)?'Viene sostituito sul PDF.':'Nuovo elemento.'}</span></div>
+   <span class="hint"> ${p.layer==='orig'?"Il nuovo testo viene scritto nella pagina al posto del vecchio: resta selezionabile e copiabile in ogni lettore PDF.":(p.covers||p.xrefs)?'Viene sostituito sul PDF.':'Nuovo elemento.'}</span></div>
    <label>Testo</label><input type="text" id="fText" value="${esc(p.text)}">
    <div class="row"><div style="flex:1"><label>Dimensione (pt)</label><input type="number" id="fSize" step="0.1" min="2" value="${p.size}"></div>
    <div><label>Colore</label><input type="color" id="fColor" value="${p.color}"></div></div>

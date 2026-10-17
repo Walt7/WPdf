@@ -25,7 +25,7 @@ Pensato per moduli compilati (testi, date, codici fiscali nelle caselle) dove pr
 
 ## Cosa fa
 - **Tre livelli distinti**, ognuno con il suo colore:
-  - **Originale** (blu): il testo del PDF. Bloccato finche' non lo attivi.
+  - **Originale** (blu): il testo del PDF. Bloccato finche' non lo attivi. Quello che modifichi resta testo della pagina: selezionabile e copiabile anche in Foxit e negli altri lettori.
   - **Foxit** (arancione): le annotazioni "Macchina da scrivere" (FreeText) create da altri programmi.
   - **App** (verde): le annotazioni create da WPdf, modificabili anche in seguito.
 - **Testi mobili**: crei un testo, lo sposti e lo ridimensioni, poi lo **fissi** sul PDF.
@@ -92,7 +92,7 @@ Il cestino scarta il testo mobile senza toccare il PDF; **Cancella dal PDF** rim
 No. WPdf gira sul tuo computer. **Non metterlo su un server pubblico**: non ha login ne' sessioni separate, quindi chiunque lo raggiungesse vedrebbe e modificherebbe i tuoi PDF. Per questo ascolta solo su `127.0.0.1` e rifiuta richieste con `Host`/`Origin` diversi. Vedi [SECURITY.md](SECURITY.md).
 
 ## Limiti noti
-- Il testo dell'originale che modifichi viene coperto e riscritto come annotazione App con font base (Helvetica, Times o Courier): i font originali (es. Calibri) non vengono mantenuti.
+- Il testo dell'originale che modifichi viene riscritto nella pagina con un font base (Helvetica, Times o Courier): i font originali (es. Calibri) non vengono mantenuti.
 - Salvando, le annotazioni Foxit modificate perdono la formattazione interna (testo ricco), restano testo, posizione, dimensione e colore.
 - Non gestisce PDF protetti da password.
 - Ogni modifica salva una copia in memoria per l'annulla (massimo 40): sconsigliato con PDF molto grandi.
