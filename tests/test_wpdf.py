@@ -228,6 +228,64 @@ class RotatedPages(unittest.TestCase):
             self.assertAlmostEqual(n["origin"][0], g["origin"][0], delta=0.5)
 
 
+class RotateCommand(unittest.TestCase):
+    """Correzione della rotazione: /rotate su una pagina o su tutte."""
+
+    def setUp(self):
+        d = fitz.open()
+        for _ in range(3):
+            d.insert_pdf(fitz.open(stream=rotated_pdf(0)))
+        app.State.load(d.tobytes(), "r.pdf")
+
+    def rotations(self):
+        return [p.rotation for p in app.State.doc]
+
+    def test_rotate_one_page_and_undo(self):
+        app.rotate_pages([1], 90)
+        self.assertEqual(self.rotations(), [0, 90, 0])
+        app.rotate_pages([1], -90)
+        app.rotate_pages([1], -90)
+        self.assertEqual(self.rotations(), [0, 270, 0])
+        app.State.goto(app.State.idx - 2)   # Annulla due volte
+        self.assertEqual(self.rotations(), [0, 90, 0])
+        self.assertNotEqual(app.State.idx, app.State.saved_idx)   # "Salva" la scrivera' sul file
+
+    def test_rotate_all(self):
+        app.rotate_pages([2], 90)
+        app.rotate_pages("all", 180)
+        self.assertEqual(self.rotations(), [180, 180, 270])
+
+    def test_rejects_bad_input(self):
+        rev = app.State.idx
+        for pages, delta in (([0], 45), ([3], 90), ([-1], 90), ([], 90), ("una", 90), ([True], 90), ([0], None)):
+            with self.assertRaises(ValueError, msg=(pages, delta)):
+                app.rotate_pages(pages, delta)
+        self.assertEqual(app.State.idx, rev)
+        self.assertEqual(self.rotations(), [0, 0, 0])
+
+    def test_texts_follow_the_rotation(self):
+        it0 = [i for i in app.objects(1)["orig"] if i["text"] == "Etichetta originale"][0]
+        app.rotate_pages([1], 90)
+        it = [i for i in app.objects(1)["orig"] if i["text"] == "Etichetta originale"][0]
+        page = app.State.doc[1]
+        self.assertEqual(it["origin"], _r2(fitz.Point(it0["origin"]) * page.rotation_matrix))
+        self.assertEqual(it["dir"], [0, 1])   # dritto prima, ora scende dall'alto verso il basso
+        app.apply_edit({"page": 1, "covers": it["covers"], "origin": it["origin"], "dir": it["dir"],
+                        "text": "Nuova", "size": 10, "color": "#000000"})
+        app.apply_edit({"page": 1, "origin": [120, 185], "text": "Aggiunto", "size": 10, "color": "#000000"})
+        o = app.objects(1)
+        new = [i for i in o["orig"] if i["text"] == "Nuova"][0]
+        self.assertEqual((new["dir"], new["origin"]), (it["dir"], it["origin"]))
+        self.assertEqual([i["dir"] for i in o["app"] if i["text"] == "Aggiunto"], [[1, 0]])
+        app.rotate_pages([1], -90)   # tornando dritta, il testo modificato e' dove era l'originale
+        back = [i for i in app.objects(1)["orig"] if i["text"] == "Nuova"][0]
+        self.assertEqual((back["dir"], back["origin"]), ([1, 0], it0["origin"]))
+
+
+def _r2(p):
+    return [round(v, 2) for v in p]
+
+
 class Robustness(unittest.TestCase):
     def setUp(self):
         app.State.load(sample_pdf(), "t.pdf", "C:/dati/t.pdf")

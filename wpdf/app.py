@@ -404,6 +404,22 @@ def delete_annots(page_no, xrefs):  # usata da /delete
     State.push()
 
 
+def rotate_pages(pages, delta):   # usata da /rotate
+    """Ruota le pagine indicate (lista di indici o "all") di delta gradi in senso orario."""
+    if delta not in (90, -90, 180):
+        raise ValueError("rotazione non valida")
+    n = len(State.doc)
+    if pages == "all":
+        pages = range(n)
+    elif not (isinstance(pages, list) and pages
+              and all(isinstance(i, int) and not isinstance(i, bool) and 0 <= i < n for i in pages)):
+        raise ValueError("pagine non valide")
+    for i in set(pages):
+        page = State.doc[i]
+        page.set_rotation((page.rotation + delta) % 360)
+    State.push()
+
+
 class NoPicker(Exception):
     pass
 
@@ -607,6 +623,9 @@ class H(BaseHTTPRequestHandler):
                 elif u.path == "/delete":
                     j = json.loads(body)
                     delete_annots(j["page"], j["xrefs"])
+                elif u.path == "/rotate" and State.doc:
+                    j = json.loads(body)
+                    rotate_pages(j.get("pages"), j.get("delta"))
                 elif u.path == "/undo" and State.idx > 0:
                     State.goto(State.idx - 1)
                 elif u.path == "/redo" and State.idx < len(State.history) - 1:

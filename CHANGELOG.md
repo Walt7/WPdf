@@ -4,6 +4,7 @@
 - **Firme salvate**: archivio locale e cifrato (DPAPI su Windows), firme disegnate, caricate da foto/scansione con sfondo reso trasparente o scritte in corsivo; si inseriscono come firma mobile da spostare e ridimensionare in proporzione, poi si fissano nella pagina mantenendo la trasparenza (anche su pagine ruotate).
 - Supporto per **tavoletta grafica**: pressione della penna, tutti i campioni della tavoletta, lato gomma.
 - Il testo **Originale** modificato (anche con Area) ora viene riscritto nella pagina invece che come annotazione: resta selezionabile, copiabile e cercabile in Foxit e negli altri lettori, e rimane nel livello Originale. I testi aggiunti e quelli Foxit restano annotazioni.
+- **Rotazione delle pagine**: pulsanti per ruotare a sinistra/destra la pagina corrente o tutte le pagine, e su ogni pagina (al passaggio del mouse) per ruotare solo quella. Annullabile, e salvata nel file.
 - Corretto: elementi con l'attributo `hidden` che restavano visibili.
 - Corretto: sulle **pagine ruotate** (90/180/270°) i riquadri dei testi, Area e Aggiungi testo cadevano nel punto sbagliato. Il server ora usa le coordinate della pagina come la si vede; i testi modificati mantengono il verso dell'originale e quelli aggiunti sono dritti come mostrati.
 
