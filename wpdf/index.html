@@ -480,7 +480,7 @@ function fromObj(n,s){
   if(pend.some(p=>p.srcKey===key&&p.page===n))return;
   newPend({page:n,x:s.origin[0],y:s.origin[1],text:s.text,size:s.size,color:s.color,bold:s.bold,italic:s.italic,font:s.font,
     layer:s.layer,covers:s.covers||null,xrefs:s.xrefs||null,hide:s.covers||s.hide||null,title:s.title||'',subject:s.subject||'',
-    pitch:s.pitch||0,srcKey:key});
+    pitch:s.pitch||0,dir:s.dir||null,srcKey:key});
 }
 const famOf=f=>/times|serif/i.test(f)&&!/sans/i.test(f)?'Times':/courier|mono/i.test(f)?'Courier':'Helvetica';
 const CSSFAM={Helvetica:'Helvetica,Arial,sans-serif',Times:'"Times New Roman",Times,serif',Courier:'"Courier New",Courier,monospace'};
@@ -527,6 +527,10 @@ function styleP(p,d){
   const inp=d.querySelector('input');
   inp.style.font=cssFont(p);inp.style.color=p.color;
   d.style.top=(p.y-ASC*p.size)*zoom+'px';
+  // testo non dritto sullo schermo (es. pagina ruotata): ruota attorno all'origine della linea di base
+  const [dx,dy]=p.dir||[1,0];
+  d.style.transformOrigin=`${(p.pitch?p.pitch/2:0)*zoom+4}px ${ASC*p.size*zoom+4}px`;   // +4: bordo e padding
+  d.style.transform=dx===1&&dy===0?'':`rotate(${Math.atan2(dy,dx)}rad)`;
   if(p.pitch){
     const sl=d.querySelector('.slots');
     d.style.left=(p.x-p.pitch/2)*zoom+'px';
@@ -624,7 +628,7 @@ async function fix(list){
         i=await post('/sign',{page:p.page,sid:p.sid,rect:[p.x,p.y,p.x+p.w,p.y+p.h]});
         pend=pend.filter(q=>q.id!==p.id);if(selId===p.id)selId=null;continue;
       }
-      i=await post('/edit',{page:p.page,covers:p.covers||undefined,xrefs:p.xrefs||undefined,title:p.title||undefined,subject:p.subject||undefined,pitch:p.pitch||undefined,origin:[p.x,p.y],font:p.font,
+      i=await post('/edit',{page:p.page,covers:p.covers||undefined,xrefs:p.xrefs||undefined,title:p.title||undefined,subject:p.subject||undefined,pitch:p.pitch||undefined,dir:p.dir||undefined,origin:[p.x,p.y],font:p.font,
         text:p.text,size:p.size,color:p.color,bold:p.bold,italic:p.italic});
       pend=pend.filter(q=>q.id!==p.id);if(selId===p.id)selId=null;
       remapXrefs(i.remap);

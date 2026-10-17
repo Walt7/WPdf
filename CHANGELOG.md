@@ -5,6 +5,7 @@
 - Supporto per **tavoletta grafica**: pressione della penna, tutti i campioni della tavoletta, lato gomma.
 - Il testo **Originale** modificato (anche con Area) ora viene riscritto nella pagina invece che come annotazione: resta selezionabile, copiabile e cercabile in Foxit e negli altri lettori, e rimane nel livello Originale. I testi aggiunti e quelli Foxit restano annotazioni.
 - Corretto: elementi con l'attributo `hidden` che restavano visibili.
+- Corretto: sulle **pagine ruotate** (90/180/270°) i riquadri dei testi, Area e Aggiungi testo cadevano nel punto sbagliato. Il server ora usa le coordinate della pagina come la si vede; i testi modificati mantengono il verso dell'originale e quelli aggiunti sono dritti come mostrati.
 
 ## 1.0.0
 - **Aggiornamenti**: avviso quando esce una nuova versione (Novità, Aggiorna e riavvia, Più tardi, Salta questa versione). WPdf.exe si aggiorna da solo verificando dimensione e SHA-256 e riapre il file; con pip mostra il comando. Disattivabile con `--no-update-check`.
