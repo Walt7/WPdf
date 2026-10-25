@@ -1,5 +1,8 @@
 # Changelog
 
+## Non rilasciato
+- Corretto: modificando il testo Originale, virgolette curve, trattini lunghi, puntini di sospensione ed euro diventavano punti a mezza altezza.
+
 ## 1.1.0
 - **Firme salvate**: archivio locale e cifrato (DPAPI su Windows), firme disegnate, caricate da foto/scansione con sfondo reso trasparente o scritte in corsivo; si inseriscono come firma mobile da spostare e ridimensionare in proporzione, poi si fissano nella pagina mantenendo la trasparenza (anche su pagine ruotate).
 - Supporto per **tavoletta grafica**: pressione della penna, tutti i campioni della tavoletta, lato gomma.

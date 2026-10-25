@@ -271,6 +271,16 @@ def _write(page, p, text):
     return [a.xref for a in made]
 
 
+def _unicode_font(page, fn, text):
+    """I font base14 coprono solo Latin-1: virgolette curve, trattini lunghi, euro... uscirebbero come
+    punti. In quel caso si incorpora lo stesso font (che li ha) nella pagina."""
+    if all(ord(c) < 256 for c in text):
+        return fn
+    name = "u" + fn
+    page.insert_font(fontname=name, fontbuffer=fitz.Font(fn).buffer)
+    return name
+
+
 def _write_text(page, p, text):
     """Testo nel contenuto della pagina (non un'annotazione): selezionabile, copiabile e cercabile
     in qualsiasi lettore, e rimane nel livello Originale."""
@@ -279,6 +289,7 @@ def _write_text(page, p, text):
     color = rgb(int(p.get("color", "#000000").lstrip("#"), 16))
     ox, oy = p["origin"]
     pitch = p.get("pitch")
+    fn = _unicode_font(page, fn, text)
     if pitch:   # lettere in caselle: ognuna centrata nella sua casella
         pieces = [(ox + i * pitch - fitz.get_text_length(ch, fontname=fn, fontsize=size) / 2, ch)
                   for i, ch in enumerate(text) if ch.strip()]
