@@ -62,6 +62,16 @@ class Layers(unittest.TestCase):
         page = app.State.plain()[0]                                # come lo vede un lettore senza annotazioni
         self.assertIn("Nuova", page.get_text())
 
+    def test_typographic_chars_are_not_replaced(self):
+        # i font base14 sono Latin-1: senza font incorporato “ ” diventavano punti a mezza altezza
+        it = [i for i in app.objects(0)["orig"] if i["text"] == "Etichetta originale"][0]
+        def render(text):
+            app.State.load(sample_pdf(), "t.pdf")
+            app.apply_edit({"page": 0, "covers": it["covers"], "origin": it["origin"], "text": text,
+                            "size": 10, "color": "#000000"})
+            return app.State.plain()[0].get_pixmap(dpi=200).samples
+        self.assertNotEqual(render("a “b”"), render("a ·b·"))
+
     def test_original_letter_boxes_stay_page_text(self):
         d = fitz.open()
         p = d.new_page()
