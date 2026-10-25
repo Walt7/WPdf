@@ -5,7 +5,7 @@ Livelli:
   foxit = annotazioni FreeText non create da questa app (es. Macchina da scrivere di Foxit)
   app   = annotazioni FreeText create da questa app (title "WPdfEditor")
 """
-import argparse, json, os, re, sys, threading, time, webbrowser
+import argparse, json, math, os, re, sys, threading, time, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote
@@ -106,18 +106,70 @@ def _calibrate():
 KX, KY = _calibrate()
 
 
-def make_annot(page, text, ox, oy, size, color, fn, title, subject, width=None, align=0):
-    """FreeText con baseline in (ox, oy). width fisso + align=1 per centrare (lettere in caselle)."""
+# ---------------------------------------------------------------- rotazione e direzione del testo
+# Il browser lavora in coordinate visualizzate (pagina gia' ruotata, come /page/N.png e info.sizes);
+# qui dentro si lavora in coordinate PDF non ruotate (get_text, annot.rect, insert_text).
+# Si converte solo in objects() (uscita) e in apply_edit() (entrata), come signatures.place.
+# dir = versore della linea di base del testo; i testi si scrivono a multipli di 90 gradi.
+def angle_of(d):
+    """Rotazione 0/90/180/270 (il parametro rotate di insert_text e FreeText) per la direzione d."""
+    return round(math.degrees(math.atan2(-d[1], d[0])) / 90) % 4 * 90
+
+
+def dir_of(angle):
+    r = math.radians(angle)
+    return [round(math.cos(r)), round(-math.sin(r))]
+
+
+def text_matrix(o, d):
+    """Da spazio del testo (u lungo la linea di base, v verso il basso) a coordinate PDF."""
+    return fitz.Matrix(d[0], d[1], -d[1], d[0], o[0], o[1])
+
+
+def _vec(v, m):
+    return list(fitz.Point(v) * m - fitz.Point(0, 0) * m)
+
+
+def _r2(seq):
+    return [round(v, 2) for v in seq]
+
+
+def to_view(page, it):
+    """Elemento letto dal PDF -> coordinate visualizzate."""
+    m = page.rotation_matrix
+    it = {**it, "bbox": _r2(fitz.Rect(it["bbox"]) * m), "origin": _r2(fitz.Point(it["origin"]) * m),
+          "dir": dir_of(angle_of(_vec(it["dir"], m)))}
+    for k in ("covers", "hide"):
+        if k in it:
+            it[k] = [_r2(fitz.Rect(r) * m) for r in it[k]]
+    return it
+
+
+def from_view(page, p):
+    """Richiesta del browser (coordinate visualizzate) -> coordinate PDF."""
+    m = page.derotation_matrix
+    p = {**p, "dir": dir_of(angle_of(_vec(p.get("dir") or [1, 0], m)))}   # senza dir: dritto come mostrato
+    if p.get("origin"):
+        p["origin"] = list(fitz.Point(p["origin"]) * m)
+    if p.get("covers"):
+        p["covers"] = [list(fitz.Rect(r) * m) for r in p["covers"]]
+    return p
+
+
+def make_annot(page, text, ox, oy, size, color, fn, title, subject, width=None, align=0, d=(1, 0)):
+    """FreeText con baseline in (ox, oy) nella direzione d. width fisso + align=1 per centrare
+    (lettere in caselle)."""
     tw = fitz.get_text_length(text, fontname=fn, fontsize=size)
     if width is None:
         w = tw * 1.1 + 2 * KX * size + 6   # margine: evita l'a-capo automatico
-        x0 = ox - KX * size
+        u0 = -KX * size
     else:
         w = width
-        x0 = ox
-    y0 = oy - KY * size
-    a = page.add_freetext_annot(fitz.Rect(x0, y0, x0 + w, y0 + size * 1.5), text, fontsize=size,
-                                fontname=fn, text_color=color, fill_color=None, align=align)
+        u0 = 0
+    v0 = -KY * size
+    r = fitz.Rect(u0, v0, u0 + w, v0 + size * 1.5) * text_matrix((ox, oy), d)
+    a = page.add_freetext_annot(r, text, fontsize=size, fontname=fn, text_color=color, fill_color=None,
+                                align=align, rotate=angle_of(d))
     a.set_info(title=title, subject=subject, content=text)
     a.set_flags(fitz.PDF_ANNOT_IS_PRINT)
     return a
@@ -128,7 +180,7 @@ def annot_items(page):
     spans = []
     for b in page.get_text("dict")["blocks"]:
         for l in b.get("lines", []):
-            spans.extend(l["spans"])
+            spans.extend({**s, "dir": l["dir"]} for s in l["spans"])
     out = []
     for a in page.annots() or []:
         if a.type[0] != fitz.PDF_ANNOT_FREE_TEXT:
@@ -146,11 +198,15 @@ def annot_items(page):
             s = inside[0]
             bb = list(s["bbox"])
             it = {"origin": [round(v, 2) for v in s["origin"]], "font": s["font"], "size": round(s["size"], 2),
-                  "color": "#%06x" % s["color"], "bold": bool(s["flags"] & 16), "italic": bool(s["flags"] & 2)}
+                  "color": "#%06x" % s["color"], "bold": bool(s["flags"] & 16), "italic": bool(s["flags"] & 2),
+                  "dir": dir_of(angle_of(s["dir"]))}
         else:
             bb = [r.x0, r.y0, r.x1, r.y1]
-            it = {"origin": [round(r.x0 + KX * 7, 2), round(r.y0 + KY * 7, 2)], "font": "Helvetica", "size": 7,
-                  "color": "#000000", "bold": False, "italic": False}
+            rot = angle_of(dir_of(a.rotation if a.rotation > 0 else 0))
+            corner = {0: r.tl, 90: r.bl, 180: r.br, 270: r.tr}[rot]   # dove inizia la prima riga
+            it = {"origin": _r2(fitz.Point(KX * 7, KY * 7) * text_matrix(corner, dir_of(rot))),
+                  "font": "Helvetica", "size": 7, "color": "#000000", "bold": False, "italic": False,
+                  "dir": dir_of(rot)}
         out.append({**it, "bbox": [round(v, 2) for v in bb], "text": txt, "layer": layer,
                     "xrefs": [a.xref], "hide": [[round(v, 2) for v in (r.x0, r.y0, r.x1, r.y1)]],
                     "title": title, "subject": a.info.get("subject", "")})
@@ -167,7 +223,7 @@ def orig_items(page_no):
                     continue
                 bb = [round(v, 2) for v in s["bbox"]]
                 out.append({
-                    "bbox": bb, "origin": [round(v, 2) for v in s["origin"]],
+                    "bbox": bb, "origin": [round(v, 2) for v in s["origin"]], "dir": dir_of(angle_of(l["dir"])),
                     "text": s["text"], "font": s["font"],
                     "size": round(s["size"], 2), "color": "#%06x" % s["color"],
                     "bold": bool(s["flags"] & 16), "italic": bool(s["flags"] & 2),
@@ -177,9 +233,12 @@ def orig_items(page_no):
 
 
 def group_singles(items):
-    """Caratteri singoli allineati e spaziati (es. codice fiscale nelle caselle) -> un unico testo."""
-    multi = [i for i in items if len(i["text"].strip()) != 1]
-    singles = sorted((i for i in items if len(i["text"].strip()) == 1), key=lambda i: i["origin"][1])
+    """Caratteri singoli allineati e spaziati (es. codice fiscale nelle caselle) -> un unico testo.
+    Coordinate visualizzate; solo i testi dritti come mostrati."""
+    def single(i):
+        return len(i["text"].strip()) == 1 and i["dir"] == [1, 0]
+    multi = [i for i in items if not single(i)]
+    singles = sorted((i for i in items if single(i)), key=lambda i: i["origin"][1])
     rows, row = [], []
     for it in singles:
         if row and it["origin"][1] - row[0]["origin"][1] > 1.5:
@@ -236,9 +295,10 @@ def _group(run):
 
 
 def objects(pno):
+    """Elementi della pagina in coordinate visualizzate, come l'immagine di /page/N.png."""
     page = State.doc[pno]
-    ann = group_singles(annot_items(page))
-    orig = group_singles(orig_items(pno))
+    ann = group_singles([to_view(page, i) for i in annot_items(page)])
+    orig = group_singles([to_view(page, i) for i in orig_items(pno)])
     return {"orig": orig,
             "foxit": [i for i in ann if i["layer"] == "foxit"],
             "app": [i for i in ann if i["layer"] == "app"]}
@@ -252,11 +312,16 @@ def _find_annot(page, xref):
     return None
 
 
+def _along(o, d, t):
+    return o[0] + t * d[0], o[1] + t * d[1]
+
+
 def _write(page, p, text):
+    """Annotazioni FreeText; p in coordinate PDF, testo nella direzione p["dir"]."""
     size = float(p.get("size", 8))
     fn = pick_font(p.get("font"), p.get("bold"), p.get("italic"))
     color = rgb(int(p.get("color", "#000000").lstrip("#"), 16))
-    ox, oy = p["origin"]
+    o, d = p["origin"], p.get("dir") or [1, 0]
     title = p.get("title") or APP_TITLE
     subject = p.get("subject") or APP_SUBJECT
     pitch = p.get("pitch")
@@ -264,10 +329,10 @@ def _write(page, p, text):
     if pitch:   # una annotazione per casella, lettera centrata
         for i, ch in enumerate(text):
             if ch.strip():
-                made.append(make_annot(page, ch, ox + i * pitch - pitch / 2, oy, size, color, fn, title,
-                                       subject, width=pitch, align=1))
+                made.append(make_annot(page, ch, *_along(o, d, i * pitch - pitch / 2), size, color, fn, title,
+                                       subject, width=pitch, align=1, d=d))
     else:
-        made.append(make_annot(page, text, ox, oy, size, color, fn, title, subject))
+        made.append(make_annot(page, text, *o, size, color, fn, title, subject, d=d))
     return [a.xref for a in made]
 
 
@@ -287,16 +352,16 @@ def _write_text(page, p, text):
     size = float(p.get("size", 8))
     fn = pick_font(p.get("font"), p.get("bold"), p.get("italic"))
     color = rgb(int(p.get("color", "#000000").lstrip("#"), 16))
-    ox, oy = p["origin"]
+    o, d = p["origin"], p.get("dir") or [1, 0]
     pitch = p.get("pitch")
     fn = _unicode_font(page, fn, text)
     if pitch:   # lettere in caselle: ognuna centrata nella sua casella
-        pieces = [(ox + i * pitch - fitz.get_text_length(ch, fontname=fn, fontsize=size) / 2, ch)
+        pieces = [(_along(o, d, i * pitch - fitz.get_text_length(ch, fontname=fn, fontsize=size) / 2), ch)
                   for i, ch in enumerate(text) if ch.strip()]
     else:
-        pieces = [(ox, text)]
-    for x, t in pieces:   # stesse coordinate (non ruotate) con cui il testo originale e' stato letto
-        page.insert_text((x, oy), t, fontsize=size, fontname=fn, color=color)
+        pieces = [(o, text)]
+    for pt, t in pieces:   # coordinate PDF non ruotate, nella direzione del testo originale
+        page.insert_text(pt, t, fontsize=size, fontname=fn, color=color, rotate=angle_of(d))
 
 
 def apply_edit(p):
@@ -309,6 +374,7 @@ def apply_edit(p):
 
 def _apply_edit(p):
     page = State.doc[p["page"]]
+    p = from_view(page, p)
     xrefs = set(p.get("xrefs") or [])
     covers = p.get("covers") or []
     remap = {}   # vecchio xref -> nuovo, per le annotazioni ricreate dopo la copertura
@@ -346,6 +412,22 @@ def delete_annots(page_no, xrefs):  # usata da /delete
         a = _find_annot(page, x)
         if a:
             page.delete_annot(a)
+    State.push()
+
+
+def rotate_pages(pages, delta):   # usata da /rotate
+    """Ruota le pagine indicate (lista di indici o "all") di delta gradi in senso orario."""
+    if delta not in (90, -90, 180):
+        raise ValueError("rotazione non valida")
+    n = len(State.doc)
+    if pages == "all":
+        pages = range(n)
+    elif not (isinstance(pages, list) and pages
+              and all(isinstance(i, int) and not isinstance(i, bool) and 0 <= i < n for i in pages)):
+        raise ValueError("pagine non valide")
+    for i in set(pages):
+        page = State.doc[i]
+        page.set_rotation((page.rotation + delta) % 360)
     State.push()
 
 
@@ -552,6 +634,9 @@ class H(BaseHTTPRequestHandler):
                 elif u.path == "/delete":
                     j = json.loads(body)
                     delete_annots(j["page"], j["xrefs"])
+                elif u.path == "/rotate" and State.doc:
+                    j = json.loads(body)
+                    rotate_pages(j.get("pages"), j.get("delta"))
                 elif u.path == "/undo" and State.idx > 0:
                     State.goto(State.idx - 1)
                 elif u.path == "/redo" and State.idx < len(State.history) - 1:

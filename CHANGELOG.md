@@ -1,6 +1,8 @@
 # Changelog
 
 ## Non rilasciato
+- **Rotazione delle pagine**: pulsanti per ruotare a sinistra/destra la pagina corrente o tutte le pagine, e su ogni pagina (al passaggio del mouse) per ruotare solo quella. Annullabile, e salvata nel file.
+- Corretto: sulle **pagine ruotate** (90/180/270°) i riquadri dei testi, Area e Aggiungi testo cadevano nel punto sbagliato. Il server ora usa le coordinate della pagina come la si vede; i testi modificati mantengono il verso dell'originale e quelli aggiunti sono dritti come mostrati.
 - Corretto: modificando il testo Originale, virgolette curve, trattini lunghi, puntini di sospensione ed euro diventavano punti a mezza altezza.
 
 ## 1.1.0

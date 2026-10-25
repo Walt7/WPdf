@@ -33,6 +33,7 @@ Pensato per moduli compilati (testi, date, codici fiscali nelle caselle) dove pr
 - Frecce ▲▼ per scorrere tutti gli elementi di un livello, anche su piu' pagine.
 - Salvataggio diretto sul file con copia di sicurezza, oppure "Salva copia".
 - Annulla / ripristina (ultimi 40 stati).
+- **Rotazione** di una pagina o di tutto il documento, per correggere i PDF scansionati storti di 90°/180°.
 - **Firme salvate**, come in Foxit: le crei una volta (disegnate con mouse, dito o tavoletta grafica, da foto/scansione o scritte) e le inserisci con sfondo trasparente, spostandole e ridimensionandole.
 
 ## Installazione e avvio
@@ -85,6 +86,8 @@ Se ce n'è una nuova compare un avviso con **Novità**, **Aggiorna e riavvia**, 
 2. **Modifica testo**: clicca un testo. **Area**: trascina un rettangolo per testi non selezionabili. **Aggiungi testo**: clicca dove scrivere.
 3. Sposta il testo (trascina o Ctrl+frecce), ridimensionalo (quadratino blu), poi **Fissa** (Invio).
 4. **Salva** (Ctrl+S) sovrascrive il file; la prima volta crea `nome (originale).pdf` come copia di sicurezza. **Salva copia…** scarica `nome - modificato.pdf`.
+
+**Rotazione**: i pulsanti ↺ e ↻ accanto ad Annulla ruotano la pagina più visibile, il terzo ruota tutte le pagine a destra; passando il mouse su una pagina compaiono ↺ e ↻ per ruotare solo quella. La rotazione si salva nel file ed è annullabile; i testi mobili non ancora fissati su quelle pagine vengono fissati prima (dopo una conferma). Sulle pagine ruotate i testi si modificano come sulle altre: quelli modificati mantengono il verso dell'originale, quelli aggiunti sono dritti come li vedi.
 
 Il cestino scarta il testo mobile senza toccare il PDF; **Cancella dal PDF** rimuove davvero il testo selezionato (annullabile con Annulla finche' non salvi).
 

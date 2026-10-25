@@ -77,6 +77,9 @@ main{flex:1;display:flex;min-height:0;min-width:0}
 .page{position:relative;display:inline-block;margin:0 auto 20px;box-shadow:var(--shadow);background:#fff;text-align:left;user-select:none}
 .page img{display:block;width:100%;height:100%}
 .ov{position:absolute;inset:0}
+.prot{position:absolute;top:6px;right:6px;display:flex;gap:3px;opacity:0;transition:opacity .15s;z-index:2}
+.page:hover .prot,.prot:focus-within{opacity:1}
+.prot button{background:var(--bar);box-shadow:var(--shadow)}
 .sp{position:absolute;border-radius:2px;cursor:text}
 .sp.L-orig{background:#3b82f622;outline:1px solid var(--orig)}
 .sp.L-foxit{background:#f59e0b33;outline:1px solid var(--foxit)}
@@ -239,6 +242,9 @@ button.link:hover:not(:disabled){color:var(--acc)}
     <div class="grp" role="group" aria-label="Cronologia">
     <button id="bUndo" class="ico" disabled title="Annulla (Ctrl+Z)" aria-label="Annulla"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><button id="bRedo" class="ico" disabled title="Ripristina (Ctrl+Y)" aria-label="Ripristina"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
   </div>
+    <div class="grp" role="group" aria-label="Rotazione">
+    <button id="rLeft" class="ico" disabled title="Ruota pagina a sinistra" aria-label="Ruota pagina a sinistra"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v5h5"/><path d="M3.5 9A9 9 0 1 1 6 17.5"/></svg></button><button id="rRight" class="ico" disabled title="Ruota pagina a destra" aria-label="Ruota pagina a destra"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4v5h-5"/><path d="M20.5 9A9 9 0 1 0 18 17.5"/></svg></button><button id="rAll" class="ico" disabled title="Ruota tutte le pagine a destra" aria-label="Ruota tutte le pagine a destra"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="11" width="8" height="10" rx="1"/><path d="M13 11V8h7v10h-3"/><path d="M3 11a7 7 0 0 1 7-7"/><path d="m8 2 2 2-2 2"/></svg></button>
+  </div>
     <button id="bFix" class="ok" disabled title="Fissa sul PDF tutti i testi mobili">Fissa tutto (0)</button>
     <button id="bSave" class="primary" disabled title="Ctrl+S: sovrascrive il file aperto">Salva</button>
     <button id="bSaveAs" disabled title="Scarica una copia">Salva copia…</button>
@@ -363,6 +369,7 @@ async function render(){
   $('#pinfo').textContent=info.open?info.pages+(info.pages===1?' pagina':' pagine'):'';
   $('#bUndo').disabled=!info.canUndo;$('#bRedo').disabled=!info.canRedo;
   $('#bSave').disabled=!info.open;$('#bSaveAs').disabled=!info.open;
+  for(const id of ['rLeft','rRight','rAll'])$('#'+id).disabled=!info.open;
   $('#zv').textContent=Math.round(zoom*100)+'%';
   updFix();
   if(!info.open)return;
@@ -374,7 +381,10 @@ async function render(){
     const img=document.createElement('img');img.loading='lazy';img.draggable=false;
     img.src=`/page/${n}.png?z=${zoom*SS}&r=${info.rev}`;
     const ov=document.createElement('div');ov.className='ov';ov.dataset.n=n;
-    p.append(img,ov);box.append(p);
+    const pr=document.createElement('div');pr.className='prot';
+    pr.innerHTML=`<button class="ico" data-d="-90" title="Ruota questa pagina a sinistra" aria-label="Ruota la pagina ${n+1} a sinistra">${ROTL}</button><button class="ico" data-d="90" title="Ruota questa pagina a destra" aria-label="Ruota la pagina ${n+1} a destra">${ROTR}</button>`;
+    pr.onclick=e=>{const b=e.target.closest('button');if(b)rotate([n],+b.dataset.d)};
+    p.append(img,ov,pr);box.append(p);
     hookOverlay(ov,n);
     if(tool==='text')loadSpans(ov,n);
   }
@@ -480,7 +490,7 @@ function fromObj(n,s){
   if(pend.some(p=>p.srcKey===key&&p.page===n))return;
   newPend({page:n,x:s.origin[0],y:s.origin[1],text:s.text,size:s.size,color:s.color,bold:s.bold,italic:s.italic,font:s.font,
     layer:s.layer,covers:s.covers||null,xrefs:s.xrefs||null,hide:s.covers||s.hide||null,title:s.title||'',subject:s.subject||'',
-    pitch:s.pitch||0,srcKey:key});
+    pitch:s.pitch||0,dir:s.dir||null,srcKey:key});
 }
 const famOf=f=>/times|serif/i.test(f)&&!/sans/i.test(f)?'Times':/courier|mono/i.test(f)?'Courier':'Helvetica';
 const CSSFAM={Helvetica:'Helvetica,Arial,sans-serif',Times:'"Times New Roman",Times,serif',Courier:'"Courier New",Courier,monospace'};
@@ -527,6 +537,10 @@ function styleP(p,d){
   const inp=d.querySelector('input');
   inp.style.font=cssFont(p);inp.style.color=p.color;
   d.style.top=(p.y-ASC*p.size)*zoom+'px';
+  // testo non dritto sullo schermo (es. pagina ruotata): ruota attorno all'origine della linea di base
+  const [dx,dy]=p.dir||[1,0];
+  d.style.transformOrigin=`${(p.pitch?p.pitch/2:0)*zoom+4}px ${ASC*p.size*zoom+4}px`;   // +4: bordo e padding
+  d.style.transform=dx===1&&dy===0?'':`rotate(${Math.atan2(dy,dx)}rad)`;
   if(p.pitch){
     const sl=d.querySelector('.slots');
     d.style.left=(p.x-p.pitch/2)*zoom+'px';
@@ -624,7 +638,7 @@ async function fix(list){
         i=await post('/sign',{page:p.page,sid:p.sid,rect:[p.x,p.y,p.x+p.w,p.y+p.h]});
         pend=pend.filter(q=>q.id!==p.id);if(selId===p.id)selId=null;continue;
       }
-      i=await post('/edit',{page:p.page,covers:p.covers||undefined,xrefs:p.xrefs||undefined,title:p.title||undefined,subject:p.subject||undefined,pitch:p.pitch||undefined,origin:[p.x,p.y],font:p.font,
+      i=await post('/edit',{page:p.page,covers:p.covers||undefined,xrefs:p.xrefs||undefined,title:p.title||undefined,subject:p.subject||undefined,pitch:p.pitch||undefined,dir:p.dir||undefined,origin:[p.x,p.y],font:p.font,
         text:p.text,size:p.size,color:p.color,bold:p.bold,italic:p.italic});
       pend=pend.filter(q=>q.id!==p.id);if(selId===p.id)selId=null;
       remapXrefs(i.remap);
@@ -703,6 +717,34 @@ async function history(path){
   refresh(await post(path));
 }
 $('#bUndo').onclick=()=>history('/undo');$('#bRedo').onclick=()=>history('/redo');
+
+/* ---------- rotazione pagine ---------- */
+const ROTL=$('#rLeft').innerHTML,ROTR=$('#rRight').innerHTML;
+function curPage(){   // la pagina piu' visibile nell'area del documento
+  const br=$('#pages').getBoundingClientRect();let best=0,vis=-1;
+  document.querySelectorAll('#pages .page').forEach((p,n)=>{
+    const r=p.getBoundingClientRect();
+    const v=Math.max(0,Math.min(r.bottom,br.bottom)-Math.max(r.top,br.top))*Math.max(0,Math.min(r.right,br.right)-Math.max(r.left,br.left));
+    if(v>vis){vis=v;best=n}
+  });
+  return best;
+}
+async function rotate(pages,delta){
+  if(!info.open)return;
+  deselect();
+  // testi mobili e firme sono in coordinate della pagina come appare ora: vanno fissati prima
+  const open=pend.filter(p=>pages==='all'||pages.includes(p.page));
+  if(open.length){
+    const one=open.length===1,where=pages==='all'?'queste pagine':'questa pagina';
+    if(!confirm(one?`C'è 1 elemento non ancora fissato su ${where}.\nViene fissato sul PDF prima di ruotare. Continuare?`
+                   :`Ci sono ${open.length} elementi non ancora fissati su ${where}.\nVengono fissati sul PDF prima di ruotare. Continuare?`))return;
+    await fix(open);
+    if(open.some(p=>pend.includes(p)))return;   // fissaggio non riuscito: non ruotare
+  }
+  try{refresh(await post('/rotate',{pages,delta}))}catch(e){alert('Errore: '+e.message)}
+}
+$('#rLeft').onclick=()=>rotate([curPage()],-90);$('#rRight').onclick=()=>rotate([curPage()],90);
+$('#rAll').onclick=()=>rotate('all',90);
 $('#bSave').onclick=save;$('#bSaveAs').onclick=saveCopy;
 const zs=d=>{zoom=Math.min(4,Math.max(.5,Math.round((zoom+d)*100)/100));render()};
 $('#zIn').onclick=()=>zs(.25);$('#zOut').onclick=()=>zs(-.25);
